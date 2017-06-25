@@ -1,3 +1,7 @@
+
+# CurrencyConverter [![Build Status](https://travis-ci.org/XavierGuihot/currency_converter.svg?branch=master)](https://travis-ci.org/XavierGuihot/currency_converter)
+
+
 ## Overview
 
 
