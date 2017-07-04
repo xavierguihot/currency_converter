@@ -18,4 +18,6 @@ libraryDependencies += "org.joda" % "joda-convert" % "1.2"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 
+libraryDependencies += "com.holdenkarau" %% "spark-testing-base" % "1.6.1_0.6.0" % "test"
+
 parallelExecution in Test := false

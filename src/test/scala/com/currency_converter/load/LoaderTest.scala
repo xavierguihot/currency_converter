@@ -3,11 +3,7 @@ package com.currency_converter.load
 import com.currency_converter.error.CurrencyConverterException
 import com.currency_converter.model.ExchangeRate
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkConf
-
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
+import com.holdenkarau.spark.testing.SharedSparkContext
 
 import org.scalatest.FunSuite
 
@@ -16,10 +12,7 @@ import org.scalatest.FunSuite
   * @author Xavier Guihot
   * @since 2017-02
   */
-class LoaderTest extends FunSuite {
-
-	Logger.getLogger("org").setLevel(Level.OFF)
-	Logger.getLogger("akka").setLevel(Level.OFF)
+class LoaderTest extends FunSuite with SharedSparkContext {
 
 	test("Parse OneRate Line") {
 
@@ -36,11 +29,7 @@ class LoaderTest extends FunSuite {
 
 	test("Load Rates from RDD of Raw Rates") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
-		val rawRates = sparkContext.parallelize(Array(
+		val rawRates = sc.parallelize(Array(
 			// USD to SEK rate:
 			"20171224,USD,SEK,8.33034829",
 			// USD to SEK rate (will be overriden by the next rate (duplicate with next line)):
@@ -67,8 +56,6 @@ class LoaderTest extends FunSuite {
 		)
 
 		assert(computedToUSDrates === expectedToUsdRates)
-
-		sparkContext.stop()
 	}
 
 	test("Test all Required Dates of Rates have been Loaded") {
@@ -101,13 +88,9 @@ class LoaderTest extends FunSuite {
 
 	test("Load Exchange Rates from Hadoop") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		// 1:
 		var computedToUSDrates = Loader.loadExchangeRates(
-			Some(sparkContext), "src/test/resources/hdfs_rates",
+			Some(sc), "src/test/resources/hdfs_rates",
 			Loader.parseDefaultRateLine, "20170227", "20170228", false
 		)
 		var expectedToUsdRates = Map(
@@ -119,7 +102,7 @@ class LoaderTest extends FunSuite {
 		// 2: Missing rate date:
 		val exception = intercept[CurrencyConverterException] {
 			Loader.loadExchangeRates(
-				Some(sparkContext), "src/test/resources/hdfs_rates",
+				Some(sc), "src/test/resources/hdfs_rates",
 				Loader.parseDefaultRateLine, "20170226", "20170228", false
 			)
 		}
@@ -129,12 +112,10 @@ class LoaderTest extends FunSuite {
 
 		// 3: Missing rate date, but we specified it wasn't a problem:
 		computedToUSDrates = Loader.loadExchangeRates(
-			Some(sparkContext), "src/test/resources/hdfs_rates",
+			Some(sc), "src/test/resources/hdfs_rates",
 			Loader.parseDefaultRateLine, "20170226", "20170228", true
 		)
 		assert(computedToUSDrates === expectedToUsdRates)
-
-		sparkContext.stop()
 	}
 
 	test("Load Exchange Rates from a Classic File System") {

@@ -3,11 +3,7 @@ package com.currency_converter
 import com.currency_converter.error.CurrencyConverterException
 import com.currency_converter.model.ExchangeRate
 
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkConf
-
-import org.apache.log4j.Logger
-import org.apache.log4j.Level
+import com.holdenkarau.spark.testing.SharedSparkContext
 
 import org.scalatest.FunSuite
 
@@ -16,20 +12,13 @@ import org.scalatest.FunSuite
   * @author Xavier Guihot
   * @since 2017-02
   */
-class CurrencyConverterTest extends FunSuite {
-
-	Logger.getLogger("org").setLevel(Level.OFF)
-	Logger.getLogger("akka").setLevel(Level.OFF)
+class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
 	test("Get Exchange Rate") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates",
-			sparkContext = Some(sparkContext),
+			sparkContext = Some(sc),
 			firstDateOfRates = "20170201", lastDateOfRates = "20170201"
 		)
 
@@ -98,15 +87,9 @@ class CurrencyConverterTest extends FunSuite {
 			"No exchange rate for currency \"...\" for date \"20170201\"."
 		)
 		assert(exception.getMessage === expectedMessage)
-
-		sparkContext.stop()
 	}
 
 	test("Get Exchange Rate after Loading with a Custom Rate Format") {
-
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
 
 		// The custom format is:
 		// 		2017-02-01,USD,,EUR,,,0.93178
@@ -129,9 +112,8 @@ class CurrencyConverterTest extends FunSuite {
 
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates_custom_format",
-			sparkContext = Some(sparkContext),
-			firstDateOfRates = "20170201", lastDateOfRates = "20170201",
-			parseRateLine = customParseRateLine
+			sparkContext = Some(sc), parseRateLine = customParseRateLine,
+			firstDateOfRates = "20170201", lastDateOfRates = "20170201"
 		)
 
 		assert(currencyConverter.getExchangeRate("USD", "EUR", "20170201") === 0.9317799f)
@@ -142,8 +124,6 @@ class CurrencyConverterTest extends FunSuite {
 		assert(currencyConverter.getExchangeRateOrElse("EUR", "SEK", "2017-02-01", 1f, "yyyy-MM-dd") === 9.444644f)
 		assert(currencyConverter.getExchangeRateOrElse("EUR", "SEK", "20170202", 1f) === 1f)
 		assert(currencyConverter.getExchangeRateOrElse("EUR", "SEK", "2017-02-02", 1f, "yyyy-MM-dd") === 1f)
-
-		sparkContext.stop()
 	}
 
 	test("Get Exchange Rate after Loading Rates from a Classic File System") {
@@ -160,13 +140,9 @@ class CurrencyConverterTest extends FunSuite {
 
 	test("Get Converted Price") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates",
-			sparkContext = Some(sparkContext),
+			sparkContext = Some(sc),
 			firstDateOfRates = "20170201", lastDateOfRates = "20170201"
 		)
 
@@ -206,21 +182,14 @@ class CurrencyConverterTest extends FunSuite {
 			"No exchange rate for currency \"EUR\" for date \"20170202\"."
 		)
 		assert(exception.getMessage === expectedMessage)
-
-		sparkContext.stop()
 	}
 
 	test("Get Exchange Rate with Fallback") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates_fallback",
-			sparkContext = Some(sparkContext),
-			firstDateOfRates = "20170201", lastDateOfRates = "20170228",
-			tolerateUnexpectedMissingRateFiles = true
+			sparkContext = Some(sc), tolerateUnexpectedMissingRateFiles = true,
+			firstDateOfRates = "20170201", lastDateOfRates = "20170228"
 		)
 
 		// 1: Let's try even if there's no need to fallback:
@@ -315,21 +284,14 @@ class CurrencyConverterTest extends FunSuite {
 			"and no fallback could be found on previous dates"
 		)
 		assert(exception.getMessage === expectedMessage)
-
-		sparkContext.stop()
 	}
 
 	test("Get Converted Price with Fallback") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates_fallback",
-			sparkContext = Some(sparkContext),
-			firstDateOfRates = "20170201", lastDateOfRates = "20170228",
-			tolerateUnexpectedMissingRateFiles = true
+			sparkContext = Some(sc), tolerateUnexpectedMissingRateFiles = true,
+			firstDateOfRates = "20170201", lastDateOfRates = "20170228"
 		)
 
 		// 1: Let's try even if there's no need to fallback:
@@ -403,19 +365,13 @@ class CurrencyConverterTest extends FunSuite {
 			"and no fallback could be found on previous dates"
 		)
 		assert(exception.getMessage === expectedMessage)
-
-		sparkContext.stop()
 	}
 
 	test("Validate User Requested Date Format") {
 
-		val sparkContext = new SparkContext(
-			new SparkConf().setAppName("Stage2").setMaster("local[3]")
-		)
-
 		val currencyConverter = new CurrencyConverter(
 			currencyFolder = "src/test/resources/hdfs_rates",
-			sparkContext = Some(sparkContext),
+			sparkContext = Some(sc),
 			firstDateOfRates = "20170201", lastDateOfRates = "20170201"
 		)
 
@@ -456,7 +412,5 @@ class CurrencyConverterTest extends FunSuite {
 			"Date \"20170201\" doesn't look like a yyyy-MM-dd date."
 		)
 		assert(exception.getMessage === expectedMessage)
-
-		sparkContext.stop()
 	}
 }
