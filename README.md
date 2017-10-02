@@ -5,7 +5,7 @@
 ## Overview
 
 
-Version: 1.0.0
+Version: 1.0.1
 
 API Scaladoc: [CurrencyConverter](http://xavierguihot.github.io/currency_converter/#com.currency_converter.CurrencyConverter)
 
@@ -51,4 +51,4 @@ The full list of methods is available at [CurrencyConverter](http://xavierguihot
 
 With sbt, just add this one line to your build.sbt:
 
-	libraryDependencies += "currency_converter" % "currency_converter" % "1.0.0" from "https://github.com/xavierguihot/currency_converter/releases/download/v1.0.0/currency_converter-1.0.0.jar"
+	libraryDependencies += "currency_converter" % "currency_converter" % "1.0.1" from "https://github.com/xavierguihot/currency_converter/releases/download/v1.0.1/currency_converter-1.0.1.jar"

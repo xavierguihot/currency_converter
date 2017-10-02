@@ -87,6 +87,10 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 			"No exchange rate for currency \"...\" for date \"20170201\"."
 		)
 		assert(exception.getMessage === expectedMessage)
+
+		// With a non existing currency, but from this currency to the same
+		// currency:
+		assert(currencyConverter.getExchangeRate("XXX", "XXX", "20110719") === 1f)
 	}
 
 	test("Get Exchange Rate after Loading with a Custom Rate Format") {
@@ -377,7 +381,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
 		// 1: During a conversion:
 		var exception = intercept[IllegalArgumentException] {
-			currencyConverter.convert(1f, "USD", "USD", "170201")
+			currencyConverter.convert(1f, "USD", "EUR", "170201")
 		}
 		var expectedMessage = (
 			"Date \"170201\" doesn't look like a yyyyMMdd date."
@@ -395,7 +399,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
 		// 3: With another date format than the default one:
 		exception = intercept[IllegalArgumentException] {
-			currencyConverter.convert(1f, "USD", "USD", "20170201", "yyyy-MM-dd")
+			currencyConverter.convert(1f, "USD", "EUR", "20170201", "yyyy-MM-dd")
 		}
 		expectedMessage = (
 			"Date \"20170201\" doesn't look like a yyyy-MM-dd date."
@@ -405,7 +409,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 		// 4: During a conversion with fallback:
 		exception = intercept[IllegalArgumentException] {
 			currencyConverter.convertAndFallback(
-				1f, "USD", "USD", "20170201", "yyyy-MM-dd"
+				1f, "USD", "EUR", "20170201", "yyyy-MM-dd"
 			)
 		}
 		expectedMessage = (

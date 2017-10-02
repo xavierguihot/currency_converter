@@ -203,12 +203,25 @@ class CurrencyConverter(
 		format: String = "yyyyMMdd"
 	): Float = {
 
-		val yyyyMMddDate = reformatDate(forDate, format)
+		// This is not an optimization since its rare to apply it (a user
+		// usually doesn't need to get the rate from a currency to the same
+		// currency) but rather a way to avoid having an exception when a user
+		// does require to get this rate of 1 but on a currency for which input
+		// data doesn't contain a rate from this currency to usd (indeed rates
+		// are stored as currency->usd, so this means in this case that we would
+		// apply currency->usd then usd->currency, which would throw an exception):
+		if (fromCurrency == toCurrency)
+			1f
 
-		val sourceCurrencyToUsdRate = getToUsdRate(fromCurrency, yyyyMMddDate)
-		val targetCurrencyToUsdRate = getToUsdRate(toCurrency, yyyyMMddDate)
+		else {
 
-		sourceCurrencyToUsdRate * (1 / targetCurrencyToUsdRate)
+			val yyyyMMddDate = reformatDate(forDate, format)
+
+			val sourceCurrencyToUsdRate = getToUsdRate(fromCurrency, yyyyMMddDate)
+			val targetCurrencyToUsdRate = getToUsdRate(toCurrency, yyyyMMddDate)
+
+			sourceCurrencyToUsdRate * (1 / targetCurrencyToUsdRate)
+		}
 	}
 
 	// Fallback aliases:
