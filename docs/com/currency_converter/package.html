@@ -97,7 +97,7 @@ the CurrencyConverter can't find a single rate, then:</p><pre><span class="kw">v
 	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext), <span class="lit">"20140101"</span>
 )
 <span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
+currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
 currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)</pre><p>* You want to use the currency converter without Spark (with rates on a
 classic file system). And only need rates between 20170228 and 20170327; and
 you don't want an exception to be thrown if some dates are missing in your
@@ -111,7 +111,7 @@ source if rates, then:</p><pre><span class="kw">val</span> currencyConverter = <
 	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
 )
 <span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
+currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
 currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170301"</span>)</pre><p>* You want to use the currency converter within a Spark job. And, you only
 want to have access to the most up-to-date rates (ideally today's rates) and
 you can accept to fallback on the previous dates to find a rate when it's
@@ -125,7 +125,7 @@ found in the previous week, then:</p><pre><span class="kw">val</span> today = <s
 <span class="cmt">// Even if you don't have the EUR to USD rate for 20170327, but you have it for 20170326, then this will return the</span>
 <span class="cmt">// rate / converted price for 20170326. On the contrary, if the EUR to USD rate can't be found for all dates between</span>
 <span class="cmt">// 20170320 and 20170327, then this will throw an error:</span>
-currencyConverter.convertAndFallback(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
+currencyConverter.convertAndFallback(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
 currencyConverter.getExchangeRateAndFallback(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170327"</span>)</pre><p>* You want to use the currency converter with whatever conditions, but you
 have a different format of exchange rates than the expected one (a csv with
 4 fields: dateOfApplicability,fromCurrency,toCurrency, rate). In this case,

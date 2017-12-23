@@ -64,7 +64,7 @@ the CurrencyConverter can't find a single rate, then:</p><pre><span class="kw">v
 	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext), <span class="lit">"20140101"</span>
 )
 <span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
+currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
 currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)</pre><p>* You want to use the currency converter without Spark (with rates on a
 classic file system). And only need rates between 20170228 and 20170327; and
 you don't want an exception to be thrown if some dates are missing in your
@@ -78,7 +78,7 @@ source if rates, then:</p><pre><span class="kw">val</span> currencyConverter = <
 	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
 )
 <span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
+currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
 currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170301"</span>)</pre><p>* You want to use the currency converter within a Spark job. And, you only
 want to have access to the most up-to-date rates (ideally today's rates) and
 you can accept to fallback on the previous dates to find a rate when it's
@@ -92,7 +92,7 @@ found in the previous week, then:</p><pre><span class="kw">val</span> today = <s
 <span class="cmt">// Even if you don't have the EUR to USD rate for 20170327, but you have it for 20170326, then this will return the</span>
 <span class="cmt">// rate / converted price for 20170326. On the contrary, if the EUR to USD rate can't be found for all dates between</span>
 <span class="cmt">// 20170320 and 20170327, then this will throw an error:</span>
-currencyConverter.convertAndFallback(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
+currencyConverter.convertAndFallback(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
 currencyConverter.getExchangeRateAndFallback(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170327"</span>)</pre><p>* You want to use the currency converter with whatever conditions, but you
 have a different format of exchange rates than the expected one (a csv with
 4 fields: dateOfApplicability,fromCurrency,toCurrency, rate). In this case,
@@ -310,7 +310,7 @@ provide data under the default format, then forget this parameter.</p></dd></dl>
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
-      <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre>assert(currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) == <span class="num">13.415185</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
+      <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre>assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) == <span class="num">13.415185</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
 requested date.
 </p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
@@ -343,11 +343,11 @@ is available for the previous date (20170327) and use this one instead.
 But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
-constructor.</p><pre>assert(currencyConverter.convertAndFallback(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">1.59838</span>f)
+constructor.</p><pre>assert(currencyConverter.convertAndFallback(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">1.59838</span>d)
 <span class="cmt">// where:</span>
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>f) == <span class="num">2</span>f)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>f) == <span class="num">2</span>f)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>f) == <span class="num">1.59838</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>d) == <span class="num">1.59838</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
 dates between the CurrencyConverter parameter firstDateOfRates and the
 requested date of conversion.
 </p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
@@ -382,11 +382,11 @@ But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
 constructor.</p><p>This method returns a tuple with the converted price and the date for
-which this a rate was available.</p><pre>assert(currencyConverter.convertAndFallbackWithDetail(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">1.59838</span>f, <span class="lit">"20170226"</span>))
+which this a rate was available.</p><pre>assert(currencyConverter.convertAndFallbackWithDetail(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">1.59838</span>d, <span class="lit">"20170226"</span>))
 <span class="cmt">// where:</span>
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>f) == <span class="num">2</span>f)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>f) == <span class="num">2</span>f)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>f, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>f) == <span class="num">1.59838</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
+assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>d) == <span class="num">1.59838</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
 dates between the CurrencyConverter parameter firstDateOfRates and the
 requested date of conversion.
 </p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
@@ -415,9 +415,9 @@ rate).</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
       </a>
     </span>
       <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre><span class="cmt">// If the rate is available for the requested date:</span>
-assert(currencyConverter.convertOrElse(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>f) == <span class="num">13.415185</span>f)
+assert(currencyConverter.convertOrElse(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>d) == <span class="num">13.415185</span>d)
 <span class="cmt">// Otherwise:</span>
-assert(currencyConverter.convertOrElse(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">12.5</span>f) == <span class="num">12.5</span>f)</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+assert(currencyConverter.convertOrElse(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">12.5</span>d) == <span class="num">12.5</span>d)</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a>
@@ -509,7 +509,7 @@ the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
-      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><pre>assert(currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) == <span class="num">9.444644</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
+      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><pre>assert(currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) == <span class="num">9.444644</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
 requested date.
 </p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
@@ -542,11 +542,11 @@ is available for the previous date (20170327) and use this one instead.
 But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
-constructor.</p><pre>assert(currencyConverter.getExchangeRateAndFallback(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">0.9317799</span>f)
+constructor.</p><pre>assert(currencyConverter.getExchangeRateAndFallback(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">0.9317799</span>d)
 <span class="cmt">// where:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>f) == <span class="num">1</span>f)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>f) == <span class="num">1</span>f)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>f) == <span class="num">0.9317799</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>d) == <span class="num">0.9317799</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
 dates between the CurrencyConverter parameter firstDateOfRates and the
 requested date of conversion.
 </p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
@@ -582,15 +582,15 @@ But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
 constructor.</p><p>This method returns a tuple with the rate and the date for which this
-rate was available.</p><pre>assert(currencyConverter.getExchangeRateAndFallbackWithDetail(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">0.9317799</span>f, <span class="lit">"20170226"</span>))
+rate was available.</p><pre>assert(currencyConverter.getExchangeRateAndFallbackWithDetail(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">0.9317799</span>d, <span class="lit">"20170226"</span>))
 <span class="cmt">// where:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>f) == <span class="num">1</span>f)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>f) == <span class="num">1</span>f)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>f) == <span class="num">0.9317799</span>f)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>d) == <span class="num">0.9317799</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
 dates between the CurrencyConverter parameter firstDateOfRates and the
 requested date of conversion.
 </p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>a tuple such as (12.5f, &quot;20170324&quot;) with the exchange rate from
+the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>a tuple such as (12.5d, &quot;20170324&quot;) with the exchange rate from
 currency XXX to YYY and the date this currency was for (the requested date if data was available or
 a previous date otherwise).</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
@@ -618,9 +618,9 @@ a previous date otherwise).</p></dd></dl><dl class="attributes block"> <dt>Annot
       <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><p>This doesn't throw an exception when the requested rate for the
 requested date is missing. Instead, it returns the value given through
 the orElse parameter.</p><pre><span class="cmt">// If the rate is available for the requested date:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>f) == <span class="num">1.0732148</span>f)
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>d) == <span class="num">1.0732148</span>d)
 <span class="cmt">// Otherwise:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">1</span>f) == <span class="num">1</span>f)</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl></div>
     </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
