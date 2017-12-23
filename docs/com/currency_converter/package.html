@@ -1,5 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<!DOCTYPE html >
 <html>
         <head>
           <title>currency_converter - com.currency_converter</title>
@@ -9,6 +8,11 @@
           
       <link href="../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../lib/template.js"></script>
+      <script type="text/javascript" src="../../lib/tools.tooltip.js"></script>
+      
       <script type="text/javascript">
          if(top === self) {
             var url = '../../index.html';
@@ -24,9 +28,13 @@
         </head>
         <body class="value">
       <div id="definition">
-        <img src="../../lib/package_big.png" />
+        <img alt="Package" src="../../lib/package_big.png" />
         <p id="owner"><a href="../package.html" class="extype" name="com">com</a></p>
-        <h1>currency_converter</h1>
+        <h1>currency_converter</h1><span class="permalink">
+      <a href="../../index.html#com.currency_converter.package" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       </div>
 
       <h4 id="signature" class="signature">
@@ -58,7 +66,7 @@
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="com.currency_converter.CurrencyConverter" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+              <ol><li name="com.currency_converter.CurrencyConverter" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="CurrencyConverterextendsSerializable"></a>
       <a id="CurrencyConverter:CurrencyConverter"></a>
       <h4 class="signature">
@@ -69,8 +77,86 @@
       <span class="symbol">
         <a href="CurrencyConverter.html"><span class="name">CurrencyConverter</span></a><span class="result"> extends <span class="extype" name="scala.Serializable">Serializable</span></span>
       </span>
-      </h4>
-      <p class="comment cmt">A <b>Currency Converter</b>.</p>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.package@CurrencyConverterextendsSerializable" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A <b>Currency Converter</b>.</p><div class="fullcomment"><div class="comment cmt"><p>A <b>Currency Converter</b>.</p><p>A Scala Wrapper around your exchange rate data for currency conversion.</p><p>Based on <b>your exchange rate files</b> stored either on a classic <b>file
+system</b> or on <b>HDFS</b> (Hadoop), this CurrencyConverter object provides
+for both classic and Spark jobs methods to <b>convert prices</b> and
+<b>retrieve exchange rates</b>.</p><p>Here are some typical ways of using the currency converter:</p><p>* You want to use the currency converter within a Spark job. And, you want
+to have access to the whole history of rates you have (let's say 20140101 to
+yesterday); and you want an exception to be thrown if for at least one date
+the CurrencyConverter can't find a single rate, then:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	currencyFolder = <span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext = <span class="std">Some</span>(sparkContext),
+	firstDateOfRates = <span class="lit">"20140101"</span>, lastDateOfRates = <span class="lit">""</span>, tolerateUnexpectedMissingRateFiles = <span class="kw">false</span>
+)
+<span class="cmt">// Which is equivalent to:</span>
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext), <span class="lit">"20140101"</span>
+)
+<span class="cmt">// And then:</span>
+currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
+currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)</pre><p>* You want to use the currency converter without Spark (with rates on a
+classic file system). And only need rates between 20170228 and 20170327; and
+you don't want an exception to be thrown if some dates are missing in your
+source if rates, then:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	currencyFolder = <span class="lit">"path/to/folder/of/rate/files"</span>, sparkContext = <span class="std">None</span>, firstDateOfRates = <span class="lit">"20170228"</span>, lastDateOfRates = <span class="lit">"20170327"</span>,
+	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
+)
+<span class="cmt">// Which is equivalent to:</span>
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	<span class="lit">"path/to/folder/of/rate/files"</span>, firstDateOfRates = <span class="lit">"20170228"</span>, lastDateOfRates = <span class="lit">"20170327"</span>,
+	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
+)
+<span class="cmt">// And then:</span>
+currencyConverter.convert(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
+currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170301"</span>)</pre><p>* You want to use the currency converter within a Spark job. And, you only
+want to have access to the most up-to-date rates (ideally today's rates) and
+you can accept to fallback on the previous dates to find a rate when it's
+not available for the date you've requested, but only if the fallback can be
+found in the previous week, then:</p><pre><span class="kw">val</span> today = <span class="lit">"20170327"</span>
+<span class="kw">val</span> aWeekAgo = <span class="lit">"20170320"</span>
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext),
+	aWeekAgo, today, tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
+)
+<span class="cmt">// Even if you don't have the EUR to USD rate for 20170327, but you have it for 20170326, then this will return the</span>
+<span class="cmt">// rate / converted price for 20170326. On the contrary, if the EUR to USD rate can't be found for all dates between</span>
+<span class="cmt">// 20170320 and 20170327, then this will throw an error:</span>
+currencyConverter.convertAndFallback(<span class="num">12.5</span>f, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
+currencyConverter.getExchangeRateAndFallback(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170327"</span>)</pre><p>* You want to use the currency converter with whatever conditions, but you
+have a different format of exchange rates than the expected one (a csv with
+4 fields: dateOfApplicability,fromCurrency,toCurrency, rate). In this case,
+you can provide to the constructor of the CurrencyConverter a function which
+will replace the default one and which parses a rate line under your format
+to the object <a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">com.currency_converter.model.ExchangeRate</a>.
+None.</p><pre><span class="cmt">// The custom function to parse rate lines:</span>
+<span class="kw">val</span> customParseRateLine = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> {
+
+	<span class="kw">val</span> splittedRateLine = rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="cmt">// 2017-02-01,USD,,SEK,,,8.80033</span>
+
+	<span class="kw">val</span> date = splittedRateLine(<span class="num">0</span>).replace(<span class="lit">"-"</span>, <span class="lit">""</span>)
+	<span class="kw">val</span> fromCurrency = splittedRateLine(<span class="num">1</span>)
+	<span class="kw">val</span> toCurrency = splittedRateLine(<span class="num">3</span>)
+	<span class="kw">val</span> exchangeRate = splittedRateLine(<span class="num">6</span>).toDouble
+
+	<span class="std">Some</span>(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
+}
+<span class="cmt">// And you give it to the CurrencyConverter constructor:</span>
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
+	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext),
+	parseRateLine = customParseRateLine
+)</pre><p>Notice how the custom parsing function you provide requests to return an
+Option of ExchangeRate. This allows one to filter lines of rates he consider
+as invalid by returning None.
+Notice as well that we don't provide a method, but a function (not &quot;def&quot;,
+but &quot;var&quot;), otherwise, when using the CurrencyConverter with Spark you'll
+get a Serializable exception.</p><p>With Spark, don't forget that you can broadcast the CurrencyConverter object.</p><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
+master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
+CurrencyConverter</a>
+</p></div><dl class="attributes block"> <dt>Since</dt><dd><p>2017-02</p></dd></dl></div>
     </li></ol>
             </div>
 
@@ -89,7 +175,11 @@
       <span class="symbol">
         <a href="error/package.html"><span class="name">error</span></a>
       </span>
-      </h4>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.package@error" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
     </li><li name="com.currency_converter.model" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="model"></a>
@@ -102,7 +192,11 @@
       <span class="symbol">
         <a href="model/package.html"><span class="name">model</span></a>
       </span>
-      </h4>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.package@model" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
     </li></ol>
             </div>
@@ -129,6 +223,7 @@
       <div id="tooltip"></div>
 
       <div id="footer">  </div>
-      <script defer="defer" type="text/javascript" id="jquery-js" src="../../lib/jquery.js"></script><script defer="defer" type="text/javascript" id="jquery-ui-js" src="../../lib/jquery-ui.js"></script><script defer="defer" type="text/javascript" id="tools-tooltip-js" src="../../lib/tools.tooltip.js"></script><script defer="defer" type="text/javascript" id="template-js" src="../../lib/template.js"></script>
+
+
     </body>
       </html>

@@ -62,7 +62,7 @@ private[currency_converter] object Loader extends Serializable {
 		parseRateLine: String => Option[ExchangeRate],
 		firstDateOfRates: String, lastDateOfRates: String,
 		tolerateUnexpectedMissingRateFiles: Boolean
-	): Map[String, Map[String, Float]] = {
+	): Map[String, Map[String, Double]] = {
 
 		// In case the last date of rates to use is "", then it's that the last
 		// day to use is yesterday:
@@ -108,7 +108,7 @@ private[currency_converter] object Loader extends Serializable {
 	def loadExchangeRatesFromHdfs(
 		rawRates: RDD[String], parseRateLine: String => Option[ExchangeRate],
 		firstDateOfRates: String, lastDateOfRates: String
-	): Map[String, Map[String, Float]] = {
+	): Map[String, Map[String, Double]] = {
 
 		rawRates.flatMap(
 			rawRate => parseRateLine(rawRate)
@@ -144,7 +144,7 @@ private[currency_converter] object Loader extends Serializable {
 	def loadExchangeRatesFromFs(
 		currencyFolder: String, parseRateLine: String => Option[ExchangeRate],
 		firstDateOfRates: String, lastDateOfRates: String
-	): Map[String, Map[String, Float]] = {
+	): Map[String, Map[String, Double]] = {
 
 		val folder = new File(currencyFolder)
 		val currencyFiles =
@@ -211,7 +211,7 @@ private[currency_converter] object Loader extends Serializable {
 		val date = splittedRateLine(0)
 		val fromCurrency = splittedRateLine(1)
 		val toCurrency = splittedRateLine(2)
-		val exchangeRate = splittedRateLine(3).toFloat
+		val exchangeRate = splittedRateLine(3).toDouble
 
 		Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
 	}
@@ -222,10 +222,10 @@ private[currency_converter] object Loader extends Serializable {
 	  * @param firstDateOfRates the first date of exchange rates to use
 	  * @param lastDateOfRates the last date of exchange rates to use
 	  */
-	def checkDataFullAvailibility(
-		toUSDrates: Map[String, Map[String, Float]],
+	private def checkDataFullAvailibility(
+		toUSDrates: Map[String, Map[String, Double]],
 		firstDateOfRates: String, lastDateOfRates: String
-	) = {
+	): Unit = {
 
 		val dateFormatter = DateTimeFormat.forPattern("yyyyMMdd")
 
@@ -255,7 +255,7 @@ private[currency_converter] object Loader extends Serializable {
 	}
 
 	/** Retrieve yesterday's date */
-	def getYesterday(): String = {
+	private def getYesterday(): String = {
 		DateTimeFormat.forPattern("yyyyMMdd").print(new DateTime().minusDays(1))
 	}
 }

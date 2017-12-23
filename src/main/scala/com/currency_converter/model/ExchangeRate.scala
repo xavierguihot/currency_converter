@@ -6,5 +6,5 @@ package com.currency_converter.model
   * @since 2017-06
   */
 case class ExchangeRate(
-	date: String, fromCurrency: String, toCurrency: String, rate: Float
+	date: String, fromCurrency: String, toCurrency: String, rate: Double
 ) extends Serializable

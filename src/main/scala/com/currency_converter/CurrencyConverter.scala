@@ -91,7 +91,7 @@ import org.joda.time.format.DateTimeFormat
   * 	val date = splittedRateLine(0).replace("-", "")
   * 	val fromCurrency = splittedRateLine(1)
   * 	val toCurrency = splittedRateLine(3)
-  * 	val exchangeRate = splittedRateLine(6).toFloat
+  * 	val exchangeRate = splittedRateLine(6).toDouble
   * 
   * 	Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
   * }
@@ -172,12 +172,12 @@ class CurrencyConverter(
 	  * @param format (default = "yyyyMMdd") the format under which is provided
 	  * the date of the requested exchange rate.
 	  * @return the price converted in currency YYY
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def convert(
-		price: Float, fromCurrency: String, toCurrency: String, forDate: String,
+		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Float = {
+	): Double = {
 		price * getExchangeRate(fromCurrency, toCurrency, forDate, format)
 	}
 
@@ -196,12 +196,12 @@ class CurrencyConverter(
 	  * @param format (default = "yyyyMMdd") the format under which is provided
 	  * the date of the requested exchange rate.
 	  * @return the exchange rate from currency XXX to YYY
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def getExchangeRate(
 		fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Float = {
+	): Double = {
 
 		// This is not an optimization since its rare to apply it (a user
 		// usually doesn't need to get the rate from a currency to the same
@@ -258,12 +258,12 @@ class CurrencyConverter(
 	  * @param format (default = "yyyyMMdd") the format under which is provided
 	  * the date of the requested exchange rate.
 	  * @return the price converted in currency YYY
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def convertAndFallback(
-		price: Float, fromCurrency: String, toCurrency: String, forDate: String,
+		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Float = {
+	): Double = {
 		convertAndFallbackWithDetail(
 			price, fromCurrency, toCurrency, forDate, format
 		)._1
@@ -305,12 +305,12 @@ class CurrencyConverter(
 	  * the date of the requested exchange rate.
 	  * @return the tuple (price converted in currency YYY, date used for the
 	  * rate).
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def convertAndFallbackWithDetail(
-		price: Float, fromCurrency: String, toCurrency: String, forDate: String,
+		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): (Float, String) = {
+	): (Double, String) = {
 
 		val exchangeRateWithDetail = getExchangeRateAndFallbackWithDetail(
 			fromCurrency, toCurrency, forDate, format
@@ -354,12 +354,12 @@ class CurrencyConverter(
 	  * the date of the requested exchange rate.
 	  * @return the exchange rate for the requested date or the earliest
 	  * previous dte for which there was available data.
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def getExchangeRateAndFallback(
 		fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Float = {
+	): Double = {
 		getExchangeRateAndFallbackWithDetail(
 			fromCurrency, toCurrency, forDate, format
 		)._1
@@ -401,12 +401,12 @@ class CurrencyConverter(
 	  * a previous date otherwise).
 	  * @param format (default = "yyyyMMdd") the format under which is provided
 	  * the date of the requested exchange rate.
-	  * @throws classOf[CurrencyConverterException]
 	  */
+	@throws(classOf[CurrencyConverterException])
 	def getExchangeRateAndFallbackWithDetail(
 		fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): (Float, String) = {
+	): (Double, String) = {
 
 		val yyyyMMddDate = reformatDate(forDate, format)
 
@@ -459,9 +459,9 @@ class CurrencyConverter(
 	  * @return the price converted in currency YYY
 	  */
 	def convertOrElse(
-		price: Float, fromCurrency: String, toCurrency: String, forDate: String,
-		orElse: Float, format: String = "yyyyMMdd"
-	): Float = {
+		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
+		orElse: Double, format: String = "yyyyMMdd"
+	): Double = {
 		try {
 			convert(price, fromCurrency, toCurrency, forDate, format)
 		} catch { case _: CurrencyConverterException => orElse }
@@ -489,9 +489,9 @@ class CurrencyConverter(
 	  * @return the exchange rate from currency XXX to YYY
 	  */
 	def getExchangeRateOrElse(
-		fromCurrency: String, toCurrency: String, forDate: String, orElse: Float,
+		fromCurrency: String, toCurrency: String, forDate: String, orElse: Double,
 		format: String = "yyyyMMdd"
-	): Float = {
+	): Double = {
 		try {
 			getExchangeRate(fromCurrency, toCurrency, forDate, format)
 		} catch { case _: CurrencyConverterException => orElse }
@@ -505,7 +505,7 @@ class CurrencyConverter(
 	  * @param date the user input date
 	  * @return the rate from the currency to USD
 	  */
-	private def getToUsdRate(currency: String, date: String): Float = {
+	private def getToUsdRate(currency: String, date: String): Double = {
 
 		// Since the USD to USD rate is not provided in input data:
 		if (currency == "USD")

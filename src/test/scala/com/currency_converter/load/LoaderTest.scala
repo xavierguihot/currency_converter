@@ -6,24 +6,26 @@ import com.currency_converter.model.ExchangeRate
 import com.holdenkarau.spark.testing.SharedSparkContext
 
 import org.scalatest.FunSuite
+import org.scalatest.PrivateMethodTester
+import org.scalatest.PrivateMethodTester.PrivateMethod
 
 /** Testing facility for the part loading exchange rates.
   *
   * @author Xavier Guihot
   * @since 2017-02
   */
-class LoaderTest extends FunSuite with SharedSparkContext {
+class LoaderTest extends FunSuite with SharedSparkContext with PrivateMethodTester {
 
 	test("Parse OneRate Line") {
 
 		// 1:
 		var rawRate = "20171224,SEK,USD,8.33034829"
-		var expectedRate = Some(ExchangeRate("20171224", "SEK", "USD", 8.33034829f))
+		var expectedRate = Some(ExchangeRate("20171224", "SEK", "USD", 8.33034829d))
 		assert(Loader.parseDefaultRateLine(rawRate) === expectedRate)
 
 		// 2:
 		rawRate = "20170327,USD,CRC,564.85"
-		expectedRate = Some(ExchangeRate("20170327", "USD", "CRC", 564.85f))
+		expectedRate = Some(ExchangeRate("20170327", "USD", "CRC", 564.85d))
 		assert(Loader.parseDefaultRateLine(rawRate) === expectedRate)
 	}
 
@@ -51,8 +53,8 @@ class LoaderTest extends FunSuite with SharedSparkContext {
 		)
 
 		val expectedToUsdRates = Map(
-			"20171224" -> Map("SEK" -> 0.120043f, "EUR" -> 1.0573283f),
-			"20171225" -> Map("SEK" -> 0.119829215f)
+			"20171224" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 1.0573283427435556d),
+			"20171225" -> Map("SEK" -> 0.119829215d)
 		)
 
 		assert(computedToUSDrates === expectedToUsdRates)
@@ -60,22 +62,24 @@ class LoaderTest extends FunSuite with SharedSparkContext {
 
 	test("Test all Required Dates of Rates have been Loaded") {
 
+		val checkDataFullAvailibility = PrivateMethod[Unit]('checkDataFullAvailibility)
+
 		// 1: All right, no exception raised:
-		Loader.checkDataFullAvailibility(
+		Loader invokePrivate checkDataFullAvailibility(
 			Map(
-				"20171224" -> Map("SEK" -> 0.120043f, "EUR" -> 1.0573283f),
-				"20171225" -> Map("SEK" -> 0.119829215f),
-				"20171226" -> Map("EUR" -> 1.25f)
+				"20171224" -> Map("SEK" -> 0.120043d, "EUR" -> 1.0573283d),
+				"20171225" -> Map("SEK" -> 0.119829215d),
+				"20171226" -> Map("EUR" -> 1.25d)
 			),
 			"20171224", "20171226"
 		)
 
 		// 2: Missing date: an exception is raised:
 		val exception = intercept[CurrencyConverterException] {
-			Loader.checkDataFullAvailibility(
+			Loader invokePrivate checkDataFullAvailibility(
 				Map(
-					"20171224" -> Map("SEK" -> 0.120043f, "EUR" -> 1.0573283f),
-					"20171226" -> Map("EUR" -> 1.25f)
+					"20171224" -> Map("SEK" -> 0.120043d, "EUR" -> 1.0573283d),
+					"20171226" -> Map("EUR" -> 1.25d)
 				),
 				"20171224", "20171226"
 			)
@@ -94,8 +98,8 @@ class LoaderTest extends FunSuite with SharedSparkContext {
 			Loader.parseDefaultRateLine, "20170227", "20170228", false
 		)
 		var expectedToUsdRates = Map(
-			"20170227" -> Map("SEK" -> 0.120043f, "EUR" -> 0.8f),
-			"20170228" -> Map("SEK" -> 0.1178467f, "EUR" -> 0.80927104f)
+			"20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
+			"20170228" -> Map("SEK" -> 0.11784670500612802d, "EUR" -> 0.8092710086753853d)
 		)
 		assert(computedToUSDrates === expectedToUsdRates)
 
@@ -126,8 +130,8 @@ class LoaderTest extends FunSuite with SharedSparkContext {
 			Loader.parseDefaultRateLine, "20170227", "20170228", false
 		)
 		var expectedToUsdRates = Map(
-			"20170227" -> Map("SEK" -> 0.120043f, "EUR" -> 0.8f),
-			"20170228" -> Map("SEK" -> 0.1178467f, "EUR" -> 0.80927104f)
+			"20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
+			"20170228" -> Map("SEK" -> 0.11784670500612802d, "EUR" -> 0.8092710086753853d)
 		)
 		assert(computedToUSDrates === expectedToUsdRates)
 
