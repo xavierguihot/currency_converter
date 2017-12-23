@@ -40,11 +40,11 @@ val currencyConverter = new CurrencyConverter(
 	"/hdfs/path/to/folder/of/rate/files", Some(sparkContext)
 )
 
-assert(currencyConverter.getExchangeRate("EUR", "SEK", "20170201") == 9.444644f)
-assert(currencyConverter.convert(12.5f, "EUR", "USD", "20170201") == 13.415185f)
+assert(currencyConverter.getExchangeRate("EUR", "SEK", "20170201") == 9.444644d)
+assert(currencyConverter.convert(12.5d, "EUR", "USD", "20170201") == 13.415185d)
 
 // In case you want to fallback on previous dates when the rate is not available for the date you're requesting:
-assert(currencyConverter.getExchangeRateAndFallback("USD", "GBP", "20170228") == 0.9317799f)
+assert(currencyConverter.getExchangeRateAndFallback("USD", "GBP", "20170228") == 0.9317799d)
 ```
 
 The full list of methods is available at [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter).

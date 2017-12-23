@@ -33,7 +33,7 @@ import org.joda.time.format.DateTimeFormat
   * 	"/hdfs/path/to/folder/of/rate/files", Some(sparkContext), "20140101"
   * )
   * // And then:
-  * currencyConverter.convert(12.5f, "EUR", "USD", "20170201")
+  * currencyConverter.convert(12.5d, "EUR", "USD", "20170201")
   * currencyConverter.getExchangeRate("EUR", "SEK", "20170201")
   * }}}
   *
@@ -52,7 +52,7 @@ import org.joda.time.format.DateTimeFormat
   * 	tolerateUnexpectedMissingRateFiles = true
   * )
   * // And then:
-  * currencyConverter.convert(12.5f, "EUR", "USD", "20170312")
+  * currencyConverter.convert(12.5d, "EUR", "USD", "20170312")
   * currencyConverter.getExchangeRate("EUR", "SEK", "20170301")
   * }}}
   *
@@ -71,7 +71,7 @@ import org.joda.time.format.DateTimeFormat
   * // Even if you don't have the EUR to USD rate for 20170327, but you have it for 20170326, then this will return the
   * // rate / converted price for 20170326. On the contrary, if the EUR to USD rate can't be found for all dates between
   * // 20170320 and 20170327, then this will throw an error:
-  * currencyConverter.convertAndFallback(12.5f, "EUR", "USD", "20170327")
+  * currencyConverter.convertAndFallback(12.5d, "EUR", "USD", "20170327")
   * currencyConverter.getExchangeRateAndFallback("EUR", "SEK", "20170327")
   * }}}
   *
@@ -159,7 +159,7 @@ class CurrencyConverter(
 	/** Converts a price from currency XXX to YYY.
 	  *
 	  * {{{
-	  * assert(currencyConverter.convert(12.5f, "EUR", "USD", "20170201") == 13.415185f)
+	  * assert(currencyConverter.convert(12.5d, "EUR", "USD", "20170201") == 13.415185d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for the
@@ -184,7 +184,7 @@ class CurrencyConverter(
 	/** Returns the exchange rate from currency XXX to YYY.
 	  *
 	  * {{{
-	  * assert(currencyConverter.getExchangeRate("EUR", "SEK", "20170201") == 9.444644f)
+	  * assert(currencyConverter.getExchangeRate("EUR", "SEK", "20170201") == 9.444644d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for the
@@ -240,11 +240,11 @@ class CurrencyConverter(
 	  * constructor.
 	  *
 	  * {{{
-	  * assert(currencyConverter.convertAndFallback(2f, "USD", "GBP", "20170228") == 1.59838f)
+	  * assert(currencyConverter.convertAndFallback(2d, "USD", "GBP", "20170228") == 1.59838d)
 	  * // where:
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170228", 2f) == 2f)
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170227", 2f) == 2f)
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170226", 2f) == 1.59838f)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170228", 2d) == 2d)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170227", 2d) == 2d)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170226", 2d) == 1.59838d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for all
@@ -286,11 +286,11 @@ class CurrencyConverter(
 	  * which this a rate was available.
 	  *
 	  * {{{
-	  * assert(currencyConverter.convertAndFallbackWithDetail(2f, "USD", "GBP", "20170228") == (1.59838f, "20170226"))
+	  * assert(currencyConverter.convertAndFallbackWithDetail(2d, "USD", "GBP", "20170228") == (1.59838d, "20170226"))
 	  * // where:
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170228", 2f) == 2f)
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170227", 2f) == 2f)
-	  * assert(currencyConverter.convertOrElse(2f, "USD", "GBP", "20170226", 2f) == 1.59838f)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170228", 2d) == 2d)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170227", 2d) == 2d)
+	  * assert(currencyConverter.convertOrElse(2d, "USD", "GBP", "20170226", 2d) == 1.59838d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for all
@@ -336,11 +336,11 @@ class CurrencyConverter(
 	  * constructor.
 	  *
 	  * {{{
-	  * assert(currencyConverter.getExchangeRateAndFallback("USD", "GBP", "20170228") == 0.9317799f)
+	  * assert(currencyConverter.getExchangeRateAndFallback("USD", "GBP", "20170228") == 0.9317799d)
 	  * // where:
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170228", 1f) == 1f)
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170227", 1f) == 1f)
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170226", 1f) == 0.9317799f)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170228", 1d) == 1d)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170227", 1d) == 1d)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170226", 1d) == 0.9317799d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for all
@@ -382,11 +382,11 @@ class CurrencyConverter(
 	  * rate was available.
 	  *
 	  * {{{
-	  * assert(currencyConverter.getExchangeRateAndFallbackWithDetail("USD", "GBP", "20170228") == (0.9317799f, "20170226"))
+	  * assert(currencyConverter.getExchangeRateAndFallbackWithDetail("USD", "GBP", "20170228") == (0.9317799d, "20170226"))
 	  * // where:
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170228", 1f) == 1f)
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170227", 1f) == 1f)
-	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170226", 1f) == 0.9317799f)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170228", 1d) == 1d)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170227", 1d) == 1d)
+	  * assert(currencyConverter.getExchangeRateOrElse("USD", "GBP", "20170226", 1d) == 0.9317799d)
 	  * }}}
 	  *
 	  * Throws a CurrencyConverterException if the rate isn't available for all
@@ -396,7 +396,7 @@ class CurrencyConverter(
 	  * @param fromCurrency the source currency
 	  * @param toCurrency the target currency
 	  * @param forDate the date for which we want the exchange rate
-	  * @return a tuple such as (12.5f, "20170324") with the exchange rate from
+	  * @return a tuple such as (12.5d, "20170324") with the exchange rate from
 	  * currency XXX to YYY and the date this currency was for (the requested date if data was available or
 	  * a previous date otherwise).
 	  * @param format (default = "yyyyMMdd") the format under which is provided
@@ -444,9 +444,9 @@ class CurrencyConverter(
 	  *
 	  * {{{
 	  * // If the rate is available for the requested date:
-	  * assert(currencyConverter.convertOrElse(12.5f, "EUR", "USD", "20170201", 12.5f) == 13.415185f)
+	  * assert(currencyConverter.convertOrElse(12.5d, "EUR", "USD", "20170201", 12.5d) == 13.415185d)
 	  * // Otherwise:
-	  * assert(currencyConverter.convertOrElse(12.5f, "EUR", "USD", "20170202", 12.5f) == 12.5f)
+	  * assert(currencyConverter.convertOrElse(12.5d, "EUR", "USD", "20170202", 12.5d) == 12.5d)
 	  * }}}
 	  *
 	  * @param price the price in currency XXX
@@ -475,9 +475,9 @@ class CurrencyConverter(
 	  *
 	  * {{{
 	  * // If the rate is available for the requested date:
-	  * assert(currencyConverter.getExchangeRateOrElse("EUR", "USD", "20170201", 12.5f) == 1.0732148f)
+	  * assert(currencyConverter.getExchangeRateOrElse("EUR", "USD", "20170201", 12.5d) == 1.0732148d)
 	  * // Otherwise:
-	  * assert(currencyConverter.getExchangeRateOrElse("EUR", "USD", "20170202", 1f) == 1f)
+	  * assert(currencyConverter.getExchangeRateOrElse("EUR", "USD", "20170202", 1d) == 1d)
 	  * }}}
 	  *
 	  * @param fromCurrency the source currency
