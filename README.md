@@ -1,5 +1,5 @@
 
-# CurrencyConverter [![Build Status](https://travis-ci.org/XavierGuihot/currency_converter.svg?branch=master)](https://travis-ci.org/XavierGuihot/currency_converter)
+# CurrencyConverter [![Build Status](https://travis-ci.org/XavierGuihot/currency_converter.svg?branch=master)](https://travis-ci.org/XavierGuihot/currency_converter) [![Coverage Status](https://coveralls.io/repos/github/XavierGuihot/currency_converter/badge.svg?branch=master)](https://coveralls.io/github/XavierGuihot/currency_converter?branch=master)
 
 
 ## Overview
