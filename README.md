@@ -1,11 +1,11 @@
 
-# CurrencyConverter [![Build Status](https://travis-ci.org/XavierGuihot/currency_converter.svg?branch=master)](https://travis-ci.org/XavierGuihot/currency_converter) [![Coverage Status](https://coveralls.io/repos/github/XavierGuihot/currency_converter/badge.svg?branch=master)](https://coveralls.io/github/XavierGuihot/currency_converter?branch=master)
+# CurrencyConverter [![Build Status](https://travis-ci.org/xavierguihot/currency_converter.svg?branch=master)](https://travis-ci.org/xavierguihot/currency_converter) [![Coverage Status](https://coveralls.io/repos/github/xavierguihot/currency_converter/badge.svg?branch=master)](https://coveralls.io/github/xavierguihot/currency_converter?branch=master) [![Release](https://jitpack.io/v/xavierguihot/currency_converter.svg)](https://jitpack.io/#xavierguihot/currency_converter)
 
 
 ## Overview
 
 
-Version: 1.0.3
+Version: 1.0.4
 
 API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter)
 
@@ -53,6 +53,41 @@ The full list of methods is available at [CurrencyConverter](http://xavierguihot
 ## Including currency_converter to your dependencies:
 
 
-With sbt, just add this one line to your build.sbt:
+With sbt, add these lines to your build.sbt:
 
-	libraryDependencies += "currency_converter" % "currency_converter" % "1.0.3" from "https://github.com/xavierguihot/currency_converter/releases/download/v1.0.3/currency_converter-1.0.3.jar"
+```scala
+resolvers += "jitpack" at "https://jitpack.io"
+
+libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v1.0.4"
+```
+
+With maven, add these lines to your pom.xml:
+
+```xml
+<repositories>
+	<repository>
+		<id>jitpack.io</id>
+		<url>https://jitpack.io</url>
+	</repository>
+</repositories>
+
+<dependency>
+	<groupId>com.github.xavierguihot</groupId>
+	<artifactId>currency_converter</artifactId>
+	<version>v1.0.4</version>
+</dependency>
+```
+
+With gradle, add these lines to your build.gradle:
+
+```groovy
+allprojects {
+	repositories {
+		maven { url 'https://jitpack.io' }
+	}
+}
+
+dependencies {
+	compile 'com.github.xavierguihot:currency_converter:v1.0.4'
+}
+```
