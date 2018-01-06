@@ -1,20 +1,13 @@
 package com.currency_converter.load
 
-import com.currency_converter.error.CurrencyConverterException
 import com.currency_converter.model.ExchangeRate
-
-import org.joda.time.Days
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 
 import scala.io.Source
 
 import java.io.File
 
 import org.apache.spark.SparkContext
-import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkException
 
 /** Functions called when initializating CurrencyConverter in order to load data.
   *
@@ -29,14 +22,14 @@ private[currency_converter] object Loader extends Serializable {
 	  *
 	  * Map(
 	  * 	"20170118": Map(
-	  * 		"SEK" -> 0.120043f,
-	  * 		"CZK" -> 0.041248f,
-	  * 		"EUR" -> 1.1145f
+	  * 		"SEK" -> 0.120043d,
+	  * 		"CZK" -> 0.041248d,
+	  * 		"EUR" -> 1.1145d
 	  * 	),
 	  * 	"20170119": Map(
-	  * 		"SEK" -> 0.12112f,
-	  * 		"CZK" -> 0.04175,
-	  * 		"EUR" -> 1.10945f
+	  * 		"SEK" -> 0.12112d,
+	  * 		"CZK" -> 0.04175d,
+	  * 		"EUR" -> 1.10945d
 	  * 	)
 	  * )
 	  *
@@ -45,69 +38,51 @@ private[currency_converter] object Loader extends Serializable {
 	  * cartesian product of all currencies is loaded for each day, this might
 	  * start using too much memory).
 	  *
+	  * @param currencyFolder the path to the folder which contains currencies
 	  * @param sparkContext if None, then files are loaded from a classical file
 	  * system; if Some(SparkContext), then files are loaded with Spark from
 	  * HDFS.
-	  * @param currencyFolder the path to the folder which contains currencies
-	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @param firstDateOfRates the first date of exchange rates to use
 	  * @param lastDateOfRates the last date of exchange rates to use. If it is
 	  * "" then the last date is considered to be yesterday.
-	  * @param tolerateUnexpectedMissingRateFiles enables not to crash when
-	  * dates of exchanges rates are missing in input.
+	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @return the exchange rate map
 	  */
 	def loadExchangeRates(
-		sparkContext: Option[SparkContext], currencyFolder: String,
-		parseRateLine: String => Option[ExchangeRate],
+		currencyFolder: String, sparkContext: Option[SparkContext],
 		firstDateOfRates: String, lastDateOfRates: String,
-		tolerateUnexpectedMissingRateFiles: Boolean
+		parseRateLine: String => Option[ExchangeRate]
 	): Map[String, Map[String, Double]] = {
 
-		// In case the last date of rates to use is "", then it's that the last
-		// day to use is yesterday:
-		val lastDate = lastDateOfRates match {
-			case "" => getYesterday()
-			case _  => lastDateOfRates
-		}
+		val toUsdRates = sparkContext match {
 
-		// We load data:
-		val toUSDrates =
-			if (sparkContext.isEmpty)
-				loadExchangeRatesFromFs(
-					currencyFolder, parseRateLine, firstDateOfRates, lastDate
-				)
-			else
-				loadExchangeRatesFromHdfs(
-					sparkContext.get.textFile(currencyFolder), parseRateLine,
-					firstDateOfRates, lastDate
-				)
-
-		// We check data is entirely here:
-		if (!tolerateUnexpectedMissingRateFiles)
-			checkDataFullAvailibility(toUSDrates, firstDateOfRates, lastDate)
-
-		// But we also check we have at least one date of rates!:
-		if (toUSDrates.isEmpty)
-			throw CurrencyConverterException(
-				"No exchange rates could be found and thus loaded for all " +
-				"requested dates."
+			case Some(sparkContext) => loadExchangeRatesFromHdfs(
+				sparkContext.textFile(currencyFolder),
+				firstDateOfRates, lastDateOfRates, parseRateLine
 			)
 
-		toUSDrates
+			case None => loadExchangeRatesFromFs(
+				currencyFolder, firstDateOfRates, lastDateOfRates, parseRateLine
+			)
+		}
+
+		// Obviously, we can't go on if nothing was loaded:
+		require(!toUsdRates.isEmpty, "no exchange rates found.")
+
+		toUsdRates
 	}
 
 	/** Loads the rate map from an RDD of rates.
 	  *
 	  * @param rawRates the RDD of raw rates (such as "2017-03-27,USD,,SEK,,,8.811")
-	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @param firstDateOfRates the first date of exchange rates to use
 	  * @param lastDateOfRates the last date of exchange rates to use
+	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @return the exchange rate map
 	  */
 	def loadExchangeRatesFromHdfs(
-		rawRates: RDD[String], parseRateLine: String => Option[ExchangeRate],
-		firstDateOfRates: String, lastDateOfRates: String
+		rawRates: RDD[String], firstDateOfRates: String, lastDateOfRates: String,
+		parseRateLine: String => Option[ExchangeRate]
 	): Map[String, Map[String, Double]] = {
 
 		rawRates.flatMap(
@@ -118,144 +93,75 @@ private[currency_converter] object Loader extends Serializable {
 			rate => rate.fromCurrency == "USD" || rate.toCurrency == "USD"
 		).groupBy(
 			rate => rate.date
-		).map {
-			case (date, usdRates) => {
+		).map { case (date, usdRates) =>
 
-				// Rates are transformed to (currency, currencyToUsdRate) tuples:
-				val toUsdRates = usdRates.map(
-					rate =>
-						if (rate.toCurrency == "USD") (rate.fromCurrency, rate.rate)
-						else (rate.toCurrency, 1f / rate.rate)
-				).toMap
+			// Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
+			val toUsdRates = usdRates.map(
+				rate => rate.toCurrency match {
+					case "USD" => (rate.fromCurrency, rate.rate)
+					case _     => (rate.toCurrency, 1d / rate.rate)
+				}
+			).toMap
 
-				(date, toUsdRates)
-			}
+			(date, toUsdRates)
+
 		}.collect().toMap
 	}
 
 	/** Loads the rate map from a folder of exchange rate files on a classic file system.
 	  *
 	  * @param currencyFolder the path to the folder which contains currencies
-	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @param firstDateOfRates the first date of exchange rates to use
 	  * @param lastDateOfRates the last date of exchange rates to use
+	  * @param parseRateLine the functions which parses a raw exchange rate
 	  * @return the exchange rate map
 	  */
 	def loadExchangeRatesFromFs(
-		currencyFolder: String, parseRateLine: String => Option[ExchangeRate],
-		firstDateOfRates: String, lastDateOfRates: String
+		currencyFolder: String, firstDateOfRates: String, lastDateOfRates: String,
+		parseRateLine: String => Option[ExchangeRate]
 	): Map[String, Map[String, Double]] = {
 
 		val folder = new File(currencyFolder)
-		val currencyFiles =
-			if (folder.exists && folder.isDirectory)
-				folder.listFiles.filter(_.isFile).toList
-			else
-				List()
 
-		currencyFiles.flatMap(
-			currencyFile =>
-
-				Source.fromFile(
-					currencyFile, "UTF-8"
-				).getLines.flatMap(
-					rawRate => parseRateLine(rawRate)
-				).filter(
-					rate => rate.date >= firstDateOfRates && rate.date <= lastDateOfRates
-				).filter(
-					rate => rate.fromCurrency == "USD" || rate.toCurrency == "USD"
-				)
-		).groupBy(
-			// Notice how we don't trust the user with the naming of exchange
-			// rates files per date, and how we prefer using the field which
-			// represents the date within each row:
-			rate => rate.date
-		).map {
-			case (date, usdRates) => {
-
-				// Rates are transformed to (currency, currencyToUsdRate) tuples:
-				val toUsdRates = usdRates.map(
-					rate =>
-						if (rate.toCurrency == "USD") (rate.fromCurrency, rate.rate)
-						else (rate.toCurrency, 1f / rate.rate)
-				).toMap
-
-				(date, toUsdRates)
-			}
-		}.toMap
-	}
-
-	/** Default parsing of one line of rate.
-	  *
-	  * If one doesn't modify the method which parses raw exchange rates, then
-	  * this is is the applied parser.
-	  *
-	  * The default format is:
-	  * 	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate
-	  * 	20170327,USD,EUR,0.89
-	  *
-	  * This returns an Option since users willing to have their xustom RateLine
-	  * adapter (to their own rate line format) might want to discard invalid
-	  * rate lines, which would thus be filtered by the flatMap calling this
-	  * function.
-	  *
-	  * @param rawRateLine the raw rate to parse, such as:
-	  * 	"20170327,USD,EUR,0.89"
-	  * @return the parsed rate as an ExchangeRate, such as:
-	  * 	Some(ExchangeRate("20170327", "USD", "EUR", 0.89f))
-	  */
-	def parseDefaultRateLine(rawRateLine: String): Option[ExchangeRate] = {
-
-		val splittedRateLine = rawRateLine.split("\\,", -1)
-
-		val date = splittedRateLine(0)
-		val fromCurrency = splittedRateLine(1)
-		val toCurrency = splittedRateLine(2)
-		val exchangeRate = splittedRateLine(3).toDouble
-
-		Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
-	}
-
-	/** Checks all required dates are available, once data has been loaded.
-	  *
-	  * @param toUSDrates the map of loaded rates
-	  * @param firstDateOfRates the first date of exchange rates to use
-	  * @param lastDateOfRates the last date of exchange rates to use
-	  */
-	private def checkDataFullAvailibility(
-		toUSDrates: Map[String, Map[String, Double]],
-		firstDateOfRates: String, lastDateOfRates: String
-	): Unit = {
-
-		val dateFormatter = DateTimeFormat.forPattern("yyyyMMdd")
-
-		val startDate = dateFormatter.parseDateTime(firstDateOfRates)
-		val lastDate = dateFormatter.parseDateTime(lastDateOfRates)
-
-		val missingDates = (
-			0 to Days.daysBetween(startDate, lastDate).getDays()
-		).toList.flatMap(
-			dayNbr => {
-
-				val iterationDate = startDate.plusDays(dayNbr)
-				val stringDate = dateFormatter.print(iterationDate)
-
-				if (!toUSDrates.contains(stringDate))
-					List(stringDate)
-				else
-					List()
-			}
+		require(
+			folder.exists,
+			"folder \"" + currencyFolder + "\" doesn't exsist"
+		)
+		require(
+			folder.isDirectory,
+			"folder \"" + currencyFolder + "\" is a file; expecting a folder"
 		)
 
-		if (!missingDates.isEmpty)
-			throw CurrencyConverterException(
-				"No exchange rate could be loaded for date(s) \"" +
-				missingDates.toString + "\"."
-			)
-	}
+		val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
-	/** Retrieve yesterday's date */
-	private def getYesterday(): String = {
-		DateTimeFormat.forPattern("yyyyMMdd").print(new DateTime().minusDays(1))
+		currencyFiles.flatMap( currencyFile =>
+
+			// Let's parse from each file of rate (usuallly one file per date)
+			// the different rates:
+			Source.fromFile(
+				currencyFile, "UTF-8"
+			).getLines.flatMap(
+				rawRate => parseRateLine(rawRate)
+			).filter(
+				rate => rate.date >= firstDateOfRates && rate.date <= lastDateOfRates
+			).filter(
+				rate => rate.fromCurrency == "USD" || rate.toCurrency == "USD"
+			)
+
+		).groupBy(
+			rate => rate.date
+		).map { case (date, usdRates) =>
+
+			// Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
+			val toUsdRates = usdRates.map(
+				rate => rate.toCurrency match {
+					case "USD" => (rate.fromCurrency, rate.rate)
+					case _     => (rate.toCurrency, 1d / rate.rate)
+				}
+			).toMap
+
+			(date, toUsdRates)
+
+		}.toMap
 	}
 }

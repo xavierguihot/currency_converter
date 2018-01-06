@@ -52,75 +52,39 @@
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>A <b>Currency Converter</b>.</p><p>A Scala Wrapper around your exchange rate data for currency conversion.</p><p>Based on <b>your exchange rate files</b> stored either on a classic <b>file
 system</b> or on <b>HDFS</b> (Hadoop), this CurrencyConverter object provides
 for both classic and Spark jobs methods to <b>convert prices</b> and
-<b>retrieve exchange rates</b>.</p><p>Here are some typical ways of using the currency converter:</p><p>* You want to use the currency converter within a Spark job. And, you want
-to have access to the whole history of rates you have (let's say 20140101 to
-yesterday); and you want an exception to be thrown if for at least one date
-the CurrencyConverter can't find a single rate, then:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	currencyFolder = <span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext = <span class="std">Some</span>(sparkContext),
-	firstDateOfRates = <span class="lit">"20140101"</span>, lastDateOfRates = <span class="lit">""</span>, tolerateUnexpectedMissingRateFiles = <span class="kw">false</span>
-)
-<span class="cmt">// Which is equivalent to:</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext), <span class="lit">"20140101"</span>
-)
-<span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)
-currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)</pre><p>* You want to use the currency converter without Spark (with rates on a
-classic file system). And only need rates between 20170228 and 20170327; and
-you don't want an exception to be thrown if some dates are missing in your
-source if rates, then:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	currencyFolder = <span class="lit">"path/to/folder/of/rate/files"</span>, sparkContext = <span class="std">None</span>, firstDateOfRates = <span class="lit">"20170228"</span>, lastDateOfRates = <span class="lit">"20170327"</span>,
-	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
-)
-<span class="cmt">// Which is equivalent to:</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	<span class="lit">"path/to/folder/of/rate/files"</span>, firstDateOfRates = <span class="lit">"20170228"</span>, lastDateOfRates = <span class="lit">"20170327"</span>,
-	tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
-)
-<span class="cmt">// And then:</span>
-currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170312"</span>)
-currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170301"</span>)</pre><p>* You want to use the currency converter within a Spark job. And, you only
-want to have access to the most up-to-date rates (ideally today's rates) and
-you can accept to fallback on the previous dates to find a rate when it's
-not available for the date you've requested, but only if the fallback can be
-found in the previous week, then:</p><pre><span class="kw">val</span> today = <span class="lit">"20170327"</span>
-<span class="kw">val</span> aWeekAgo = <span class="lit">"20170320"</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext),
-	aWeekAgo, today, tolerateUnexpectedMissingRateFiles = <span class="kw">true</span>
-)
-<span class="cmt">// Even if you don't have the EUR to USD rate for 20170327, but you have it for 20170326, then this will return the</span>
-<span class="cmt">// rate / converted price for 20170326. On the contrary, if the EUR to USD rate can't be found for all dates between</span>
-<span class="cmt">// 20170320 and 20170327, then this will throw an error:</span>
-currencyConverter.convertAndFallback(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170327"</span>)
-currencyConverter.getExchangeRateAndFallback(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170327"</span>)</pre><p>* You want to use the currency converter with whatever conditions, but you
-have a different format of exchange rates than the expected one (a csv with
-4 fields: dateOfApplicability,fromCurrency,toCurrency, rate). In this case,
-you can provide to the constructor of the CurrencyConverter a function which
-will replace the default one and which parses a rate line under your format
-to the object <a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">com.currency_converter.model.ExchangeRate</a>.
-None.</p><pre><span class="cmt">// The custom function to parse rate lines:</span>
-<span class="kw">val</span> customParseRateLine = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> {
+<b>retrieve exchange rates</b>.</p><p>* Usually, one will use the CurrencyConverter this way:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/path/to/folder/of/rate/files"</span>)
+<span class="cmt">// Or when data is stored on Hadoop:</span>
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext)
+<span class="cmt">// And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:</span>
+currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)
+currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)</pre><p>* It's often the case that one doesn't need to have the exact exchange rate of
+the requested date if the rate isn't available for this date. In this case,
+the following methods give the possibility to fallback on the rate of
+previous dates when it's not available for the given date:</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.getExchangeRateAndFallBack(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">0.9317799</span>d))
+assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">1.59838</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
+be csv formated this way:</p><p>	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
+parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
+<span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
+<span class="kw">val</span> customRateLineParser = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> {
 
-	<span class="kw">val</span> splittedRateLine = rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="cmt">// 2017-02-01,USD,,SEK,,,8.80033</span>
+	<span class="kw">val</span> splittedRateLine = rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>)
 
 	<span class="kw">val</span> date = splittedRateLine(<span class="num">0</span>).replace(<span class="lit">"-"</span>, <span class="lit">""</span>)
 	<span class="kw">val</span> fromCurrency = splittedRateLine(<span class="num">1</span>)
 	<span class="kw">val</span> toCurrency = splittedRateLine(<span class="num">3</span>)
-	<span class="kw">val</span> exchangeRate = splittedRateLine(<span class="num">6</span>).toDouble
+	<span class="kw">val</span> exchangeRate = splittedRateLine(<span class="num">6</span>).toFloat
 
 	<span class="std">Some</span>(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
-}
-<span class="cmt">// And you give it to the CurrencyConverter constructor:</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-	<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, <span class="std">Some</span>(sparkContext),
-	parseRateLine = customParseRateLine
-)</pre><p>Notice how the custom parsing function you provide requests to return an
-Option of ExchangeRate. This allows one to filter lines of rates he consider
-as invalid by returning None.
-Notice as well that we don't provide a method, but a function (not &quot;def&quot;,
-but &quot;var&quot;), otherwise, when using the CurrencyConverter with Spark you'll
-get a Serializable exception.</p><p>With Spark, don't forget that you can broadcast the CurrencyConverter object.</p><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
+}</pre><p>* Finally, you can request a specific range of dates for the rates to load.
+Indeed, the default dates to load are 20140101 to today. This might be
+either too restrictive or you might want to load less data due to very
+limited available memory.</p><p>* With Spark, don't forget that you can broadcast the CurrencyConverter
+object.</p><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
 master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
 CurrencyConverter</a>
 </p></div><dl class="attributes block"> <dt>Since</dt><dd><p>2017-02</p></dd></dl><div class="toggleContainer block">
@@ -163,7 +127,7 @@ CurrencyConverter</a>
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:Option[org.apache.spark.SparkContext],firstDateOfRates:String,lastDateOfRates:String,tolerateUnexpectedMissingRateFiles:Boolean,parseRateLine:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
       <a id="&lt;init&gt;:CurrencyConverter"></a>
       <h4 class="signature">
       <span class="modifier_kind">
@@ -171,29 +135,185 @@ CurrencyConverter</a>
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="scala.Option">Option</span>[<span class="extype" name="org.apache.spark.SparkContext">SparkContext</span>] = <span class="symbol">None</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;20140101&quot;</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;&quot;</span></span>, <span name="tolerateUnexpectedMissingRateFiles">tolerateUnexpectedMissingRateFiles: <span class="extype" name="scala.Boolean">Boolean</span> = <span class="symbol">false</span></span>, <span name="parseRateLine">parseRateLine: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>] = <span class="symbol"><span class="name"><a href="../package.html">Loader.parseDefaultRateLine</a></span></span></span>)</span>
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:Option[org.apache.spark.SparkContext],firstDateOfRates:String,lastDateOfRates:String,tolerateUnexpectedMissingRateFiles:Boolean,parseRateLine:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, with a specific
+range of dates and for data stored under a different format than the
+specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, with a specific
+range of dates and for data stored under a different format than the
+specified one.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
+of exchange rates to load (expected format is yyyyMMdd - for instance
+20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of
+dates of exchange rates to load (expected format is yyyyMMdd - for
+instance 20170415).</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange
+rates. If you have the possibility to provide data under the default
+format, then forget this parameter.</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, for data stored
+under a different format than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, for data stored
+under a different format than the specified one.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange
+rates. If you have the possibility to provide data under the default
+format, then forget this parameter.</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, with a specific
+range of dates.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, with a specific
+range of dates.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
+of exchange rates to load (expected format is yyyyMMdd - for instance
+20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of
+dates of exchange rates to load (expected format is yyyyMMdd - for
+instance 20170415).</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter, with a specific range of dates and for data
+stored under a different format than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter, with a specific range of dates and for data
+stored under a different format than the specified one.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
+of exchange rates to load (expected format is yyyyMMdd - for instance
+20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of
+dates of exchange rates to load (expected format is yyyyMMdd - for
+instance 20170415).</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange
+rates. If you have the possibility to provide data under the default
+format, then forget this parameter.</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored under a different format
+than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored under a different format
+than the specified one.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange
+rates. If you have the possibility to provide data under the default
+format, then forget this parameter.</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Creates a CurrencyConverter with a specific range of dates.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter with a specific range of dates.
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
+of exchange rates to load (expected format is yyyyMMdd - for instance
+20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of
+dates of exchange rates to load (expected format is yyyyMMdd - for
+instance 20170415).</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(currencyFolder:String):com.currency_converter.CurrencyConverter"></a>
+      <a id="&lt;init&gt;:CurrencyConverter"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">new</span>
+      </span>
+      <span class="symbol">
+        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <p class="shortcomment cmt">Creates a CurrencyConverter.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter.
-The expected format of raw exchange rates is:
-	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate
-	20170327,USD,EUR,0.89
-In case you have a different format, then use the parameter parseRateLine
-with a function which parses your format of rate line.</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the folder which contains files of
-exchange rates for all dates (unix path or hdfs path).</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the Spark context if you work with Spark or None
-otherwise.</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates of
-exchange rates to load (expected format is yyyyMMdd - for instance 20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>(default = &quot;&quot;, which means yesterday) the last date
-(included) of the range of dates of exchange rates to load (expected format
-is yyyyMMdd - for instance 20170415).</p></dd><dt class="param">tolerateUnexpectedMissingRateFiles</dt><dd class="cmt"><p>(default = false) When set to
-false, if no exchange rates could be loaded for at least one date within the
-provided range of dates to load, then an exception is thrown at the creation
-of the CurrencyConverter instance.</p></dd><dt class="param">parseRateLine</dt><dd class="cmt"><p>(default is for format &quot;20170327,USD,EUR,0.89&quot;) the
-function used to parse raw exchange rates. If you have the possibility to
-provide data under the default format, then forget this parameter.</p></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the
+files of exchange rates.</p></dd></dl></div>
     </li></ol>
             </div>
 
@@ -254,6 +374,29 @@ provide data under the default format, then forget this parameter.</p></dd></dl>
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#allDatesHaveRates" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="allDatesHaveRates():Boolean"></a>
+      <a id="allDatesHaveRates():Boolean"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">allDatesHaveRates</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@allDatesHaveRates():Boolean" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Checks that all dates within the required range have at least one rate.</p><div class="fullcomment"><div class="comment cmt"><p>Checks that all dates within the required range have at least one rate.</p><p>Depending on the use case, this might not matter, specially with fall
+back methods.</p><p>This finds out if all dates requested when creating this
+CurrencyConverter (dates within the range [firstDateOfRates, lastDateOfRates])
+have at least one exchange rate after loading data. Since usually rates
+data is provided one date per by file, this gives the user the
+possibility to know and take actions if one date has no rates.
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>if all dates within the required range have at least one rate</p></dd></dl></div>
     </li><li name="scala.Any#asInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="asInstanceOf[T0]:T0"></a>
       <a id="asInstanceOf[T0]:T0"></a>
@@ -295,44 +438,37 @@ provide data under the default format, then forget this parameter.</p></dd></dl>
               
         </dd></dl></div>
     </li><li name="com.currency_converter.CurrencyConverter#convert" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):Double"></a>
-      <a id="convert(Double,String,String,String,String):Double"></a>
+      <a id="convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
+      <a id="convert(Double,String,String,String,String):Try[Double]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">convert</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
+        <span class="name">convert</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):Double" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
-      <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre>assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) == <span class="num">13.415185</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
-requested date.
-</p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallback" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convertAndFallback(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):Double"></a>
-      <a id="convertAndFallback(Double,String,String,String,String):Double"></a>
+      <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre>assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) == Success(<span class="num">13.41</span>d))
+assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>) == Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallBack" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="convertAndFallBack(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
+      <a id="convertAndFallBack(Double,String,String,String,String):Try[Double]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">convertAndFallback</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
+        <span class="name">convertAndFallBack</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallback(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):Double" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallBack(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -343,34 +479,28 @@ is available for the previous date (20170327) and use this one instead.
 But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
-constructor.</p><pre>assert(currencyConverter.convertAndFallback(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">1.59838</span>d)
-<span class="cmt">// where:</span>
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>d) == <span class="num">1.59838</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
-dates between the CurrencyConverter parameter firstDateOfRates and the
-requested date of conversion.
-</p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallbackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convertAndFallbackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):(Double,String)"></a>
-      <a id="convertAndFallbackWithDetail(Double,String,String,String,String):(Double,String)"></a>
+constructor.</p><p>Even if this is supposed to return a fall back value based on rates of
+previous dates, the return type is embedded in a Try. Indeed, it might
+happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">1.59838</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">1.59838</span>d))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallBackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="convertAndFallBackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]"></a>
+      <a id="convertAndFallBackWithDetail(Double,String,String,String,String):Try[(Double,String)]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">convertAndFallbackWithDetail</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: (<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)</span>
+        <span class="name">convertAndFallBackWithDetail</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[(<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallbackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):(Double,String)" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallBackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -382,43 +512,16 @@ But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
 constructor.</p><p>This method returns a tuple with the converted price and the date for
-which this a rate was available.</p><pre>assert(currencyConverter.convertAndFallbackWithDetail(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">1.59838</span>d, <span class="lit">"20170226"</span>))
-<span class="cmt">// where:</span>
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">2</span>d) == <span class="num">2</span>d)
-assert(currencyConverter.convertOrElse(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">2</span>d) == <span class="num">1.59838</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
-dates between the CurrencyConverter parameter firstDateOfRates and the
-requested date of conversion.
-</p></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+which this a rate was available.</p><p>Even if this is supposed to return a fall back value based on rates of
+previous dates, the return type is embedded in a Try. Indeed, it might
+happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">1.59838</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.convertAndFallBackWithDetail(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success((<span class="num">1.59838</span>d, <span class="lit">"20170226"</span>)))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the tuple (price converted in currency YYY, date used for the
-rate).</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#convertOrElse" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convertOrElse(price:Double,fromCurrency:String,toCurrency:String,forDate:String,orElse:Double,format:String):Double"></a>
-      <a id="convertOrElse(Double,String,String,String,Double,String):Double"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">convertOrElse</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="orElse">orElse: <span class="extype" name="scala.Double">Double</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertOrElse(price:Double,fromCurrency:String,toCurrency:String,forDate:String,orElse:Double,format:String):Double" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre><span class="cmt">// If the rate is available for the requested date:</span>
-assert(currencyConverter.convertOrElse(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>d) == <span class="num">13.415185</span>d)
-<span class="cmt">// Otherwise:</span>
-assert(currencyConverter.convertOrElse(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">12.5</span>d) == <span class="num">12.5</span>d)</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
+rate).</p></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a>
       <a id="eq(AnyRef):Boolean"></a>
@@ -453,6 +556,25 @@ the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#exchangeRate" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
+      <a id="exchangeRate(String,String,String,String):Try[Double]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">exchangeRate</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><pre>assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) == Success(<span class="num">9.44</span>d))
+assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>) == Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl></div>
     </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
       <a id="finalize():Unit"></a>
@@ -493,45 +615,19 @@ the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRate" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):Double"></a>
-      <a id="getExchangeRate(String,String,String,String):Double"></a>
+    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallBack" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="getExchangeRateAndFallBack(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
+      <a id="getExchangeRateAndFallBack(String,String,String,String):Try[Double]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">getExchangeRate</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
+        <span class="name">getExchangeRateAndFallBack</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):Double" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><pre>assert(currencyConverter.getExchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) == <span class="num">9.444644</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for the
-requested date.
-</p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallback" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRateAndFallback(fromCurrency:String,toCurrency:String,forDate:String,format:String):Double"></a>
-      <a id="getExchangeRateAndFallback(String,String,String,String):Double"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">getExchangeRateAndFallback</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallback(fromCurrency:String,toCurrency:String,forDate:String,format:String):Double" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallBack(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -542,35 +638,29 @@ is available for the previous date (20170327) and use this one instead.
 But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
-constructor.</p><pre>assert(currencyConverter.getExchangeRateAndFallback(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == <span class="num">0.9317799</span>d)
-<span class="cmt">// where:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>d) == <span class="num">0.9317799</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
-dates between the CurrencyConverter parameter firstDateOfRates and the
-requested date of conversion.
-</p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+constructor.</p><p>Even if this is supposed to return a fall back value based on rates of
+previous dates, the return type is embedded in a Try. Indeed, it might
+happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.getExchangeRateAndFallBack(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">0.9317799</span>d))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate for the requested date or the earliest
-previous dte for which there was available data.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallbackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRateAndFallbackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):(Double,String)"></a>
-      <a id="getExchangeRateAndFallbackWithDetail(String,String,String,String):(Double,String)"></a>
+previous dte for which there was available data.</p></dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallBackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="getExchangeRateAndFallBackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]"></a>
+      <a id="getExchangeRateAndFallBackWithDetail(String,String,String,String):Try[(Double,String)]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">getExchangeRateAndFallbackWithDetail</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: (<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)</span>
+        <span class="name">getExchangeRateAndFallBackWithDetail</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[(<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallbackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):(Double,String)" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallBackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -582,46 +672,17 @@ But if it's still not available, this will check for the previous day
 again (20170326) and if it's available, this rate will be used. And so
 on, up to the  &quot;firstDateOfRates&quot; provided in the CurrencyConverter
 constructor.</p><p>This method returns a tuple with the rate and the date for which this
-rate was available.</p><pre>assert(currencyConverter.getExchangeRateAndFallbackWithDetail(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == (<span class="num">0.9317799</span>d, <span class="lit">"20170226"</span>))
-<span class="cmt">// where:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>, <span class="num">1</span>d) == <span class="num">0.9317799</span>d)</pre><p>Throws a CurrencyConverterException if the rate isn't available for all
-dates between the CurrencyConverter parameter firstDateOfRates and the
-requested date of conversion.
-</p></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+rate was available.</p><p>Even if this is supposed to return a fall back value based on rates of
+previous dates, the return type is embedded in a Try. Indeed, it might
+happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.getExchangeRateAndFallBackWithDetail(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Succcess((<span class="num">0.9317799</span>d, <span class="lit">"20170226"</span>)))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
 the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>a tuple such as (12.5d, &quot;20170324&quot;) with the exchange rate from
-currency XXX to YYY and the date this currency was for (the requested date if data was available or
-a previous date otherwise).</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[CurrencyConverterException]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateOrElse" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRateOrElse(fromCurrency:String,toCurrency:String,forDate:String,orElse:Double,format:String):Double"></a>
-      <a id="getExchangeRateOrElse(String,String,String,Double,String):Double"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">getExchangeRateOrElse</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="orElse">orElse: <span class="extype" name="scala.Double">Double</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.Double">Double</span></span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateOrElse(fromCurrency:String,toCurrency:String,forDate:String,orElse:Double,format:String):Double" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><p>This doesn't throw an exception when the requested rate for the
-requested date is missing. Instead, it returns the value given through
-the orElse parameter.</p><pre><span class="cmt">// If the rate is available for the requested date:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>, <span class="num">12.5</span>d) == <span class="num">1.0732148</span>d)
-<span class="cmt">// Otherwise:</span>
-assert(currencyConverter.getExchangeRateOrElse(<span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170202"</span>, <span class="num">1</span>d) == <span class="num">1</span>d)</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">orElse</dt><dd class="cmt"><p>the value to return if an error ocured (missing rate)</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl></div>
+currency XXX to YYY and the date this currency was for (the requested
+date if data was available or a previous date otherwise).</p></dd></dl></div>
     </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
       <a id="hashCode():Int"></a>
