@@ -58,17 +58,14 @@ import scala.util.{Try, Success, Failure}
   * {{{
   * import com.currency_converter.model.ExchangeRate
   * // For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:
-  * val customRateLineParser = (rawRateLine: String) => {
+  * val customRateLineParser = (rawRateLine: String) => rawRateLine.split("\\,", -1) match {
   *
-  * 	val splittedRateLine = rawRateLine.split("\\,", -1)
+  * 	case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
+  *			exchangeRate <- Try(exchangeRate.toDouble).toOption
+  *		} yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
   *
-  * 	val date = splittedRateLine(0).replace("-", "")
-  * 	val fromCurrency = splittedRateLine(1)
-  * 	val toCurrency = splittedRateLine(3)
-  * 	val exchangeRate = splittedRateLine(6).toFloat
-  *
-  * 	Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
-  * }
+  *		case _ => None
+  *	}
   * }}}
   *
   * * Finally, you can request a specific range of dates for the rates to load.
@@ -93,13 +90,10 @@ class CurrencyConverter private (
 	rateLineParser: String => Option[ExchangeRate] = ExchangeRate.defaultRateLineParser
 ) extends Serializable {
 
-	// This contains all currency->usd exchange rates for the requested range of
-	// dates:
-	private val toUsdRates: Map[String, Map[String, Double]] =
-		Loader.loadExchangeRates(
-			currencyFolder, sparkContext, firstDateOfRates, lastDateOfRates,
-			rateLineParser
-		)
+	// This contains all currency->usd exchange rates for the requested range of dates:
+	private val toUsdRates: Map[String, Map[String, Double]] = Loader.loadExchangeRates(
+		currencyFolder, sparkContext, firstDateOfRates, lastDateOfRates, rateLineParser
+	)
 
 	/** Converts a price from currency XXX to YYY.
 	  *
@@ -119,13 +113,9 @@ class CurrencyConverter private (
 	def convert(
 		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Try[Double] = {
-
-		exchangeRate(fromCurrency, toCurrency, forDate, format) match {
-			case Success(rate)      => Success(price * rate)
-			case Failure(exception) => Failure(exception)
-		}
-	}
+	): Try[Double] = for {
+		rate <- exchangeRate(fromCurrency, toCurrency, forDate, format)
+	} yield price * rate
 
 	/** Returns the exchange rate from currency XXX to YYY.
 	  *
@@ -160,22 +150,14 @@ class CurrencyConverter private (
 
 			val date = CurrencyConverter.yyyyMMddDate(forDate, format)
 
-			val sourceCurrencyToUsdRate = getToUsdRate(fromCurrency, date)
-			val targetCurrencyToUsdRate = getToUsdRate(toCurrency, date)
+			for {
 
-			(sourceCurrencyToUsdRate, targetCurrencyToUsdRate) match {
+				sourceCurrencyToUsdRate <- getToUsdRate(fromCurrency, date)
+				targetCurrencyToUsdRate <- getToUsdRate(toCurrency, date)
 
-				case (Success(sourceCurrencyToUsdRate), Success(targetCurrencyToUsdRate)) =>
-					Success(sourceCurrencyToUsdRate * (1d / targetCurrencyToUsdRate))
-
-				case (Failure(exception), _) => Failure(exception)
-
-				case (_, Failure(exception)) => Failure(exception)
-			}
+			} yield sourceCurrencyToUsdRate * (1d / targetCurrencyToUsdRate)
 		}
 	}
-
-	// Fallback aliases:
 
 	/** Converts a price from currency XXX to YYY and if needed and possible, fallback on earlier date.
 	  *
@@ -214,17 +196,12 @@ class CurrencyConverter private (
 	def convertAndFallBack(
 		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Try[Double] = {
+	): Try[Double] = for {
 
-		val convertedPriceWithDetail = convertAndFallBackWithDetail(
-			price, fromCurrency, toCurrency, forDate, format
-		)
+		(convertedPrice, fallBackDate) <- convertAndFallBackWithDetail(
+		                                  price, fromCurrency, toCurrency, forDate, format)
 
-		convertedPriceWithDetail match {
-			case Success((convertedPrice, fallBackDate)) => Success(convertedPrice)
-			case Failure(exception)                      => Failure(exception)
-		}
-	}
+	} yield convertedPrice
 
 	/** Converts a price from currency XXX to YYY and if needed and possible, fallback on earlier date.
 	  *
@@ -267,17 +244,12 @@ class CurrencyConverter private (
 	def convertAndFallBackWithDetail(
 		price: Double, fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Try[(Double, String)] = {
+	): Try[(Double, String)] = for {
 
-		val exchangeRateWithDetail = getExchangeRateAndFallBackWithDetail(
-			fromCurrency, toCurrency, forDate, format
-		)
+		(exchangeRate, fallBackDate) <- getExchangeRateAndFallBackWithDetail(
+		                                fromCurrency, toCurrency, forDate, format)
 
-		exchangeRateWithDetail match {
-			case Success((exchangeRate, fallBackDate)) => Success((price * exchangeRate, fallBackDate))
-			case Failure(exception) => Failure(exception)
-		}
-	}
+	} yield (price * exchangeRate, fallBackDate)
 
 	/** Returns the exchange rate from currency XXX to YYY and fallback on earlier date.
 	  *
@@ -316,17 +288,12 @@ class CurrencyConverter private (
 	def getExchangeRateAndFallBack(
 		fromCurrency: String, toCurrency: String, forDate: String,
 		format: String = "yyyyMMdd"
-	): Try[Double] = {
+	): Try[Double] = for {
 
-		val rateWithDetail = getExchangeRateAndFallBackWithDetail(
-			fromCurrency, toCurrency, forDate, format
-		)
+		(rate, fallBackDate) <- getExchangeRateAndFallBackWithDetail(
+		                        fromCurrency, toCurrency, forDate, format)
 
-		rateWithDetail match {
-			case Success((rate, fallBackDate)) => Success(rate)
-			case Failure(exception)            => Failure(exception)
-		}
-	}
+	} yield rate
 
 	/** Returns the exchange rate from currency XXX to YYY and fallback on earlier date.
 	  *
@@ -376,13 +343,11 @@ class CurrencyConverter private (
 
 			case Success(rate) => Success((rate, date))
 
-			case Failure(exception) => {
+			case Failure(_) => {
 
 				val formatter = DateTimeFormat.forPattern("yyyyMMdd")
 
-				val dayBefore = formatter.print(
-					formatter.parseDateTime(date).minusDays(1)
-				)
+				val dayBefore = formatter.print(formatter.parseDateTime(date).minusDays(1))
 
 				if (dayBefore >= firstDateOfRates)
 					getExchangeRateAndFallBackWithDetail(fromCurrency, toCurrency, dayBefore)
@@ -390,8 +355,7 @@ class CurrencyConverter private (
 					Failure(CurrencyConverterException(
 						"No exchange rate between currencies \"" +
 						fromCurrency + "\" and \"" + toCurrency + "\" " +
-						"could be found even after fallback on previous dates."
-					))
+						"could be found even after fallback on previous dates."))
 			}
 		}
 	}
@@ -448,14 +412,12 @@ class CurrencyConverter private (
 					case Some(toUsdRatesForDate) => toUsdRatesForDate.get(currency) match {
 						case Some(currencyToUsdRate) => Success(currencyToUsdRate)
 						case None => Failure(CurrencyConverterException(
-							"No exchange rate for currency \"" + currency +
-							"\" for date \"" + date + "\"."
-						))
+						             "No exchange rate for currency \"" + currency +
+						             "\" for date \"" + date + "\"."))
 					}
 
 					case None => Failure(CurrencyConverterException(
-						"No exchange rate for date \"" + date + "\"."
-					))
+					             "No exchange rate for date \"" + date + "\"."))
 				}
 			}
 		}
@@ -590,8 +552,7 @@ private object CurrencyConverter {
 	  * should be aware in case the date or format provided gives an exception */
 	private def yyyyMMddDate(date: String, inputFormat: String): String = {
 		DateTimeFormat.forPattern("yyyyMMdd").print(
-			DateTimeFormat.forPattern(inputFormat).parseDateTime(date)
-		)
+			DateTimeFormat.forPattern(inputFormat).parseDateTime(date))
 	}
 
 	/** Retrieve today's date */

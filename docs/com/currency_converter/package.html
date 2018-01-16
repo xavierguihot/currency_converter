@@ -85,7 +85,8 @@
       <p class="shortcomment cmt">A <b>Currency Converter</b>.</p><div class="fullcomment"><div class="comment cmt"><p>A <b>Currency Converter</b>.</p><p>A Scala Wrapper around your exchange rate data for currency conversion.</p><p>Based on <b>your exchange rate files</b> stored either on a classic <b>file
 system</b> or on <b>HDFS</b> (Hadoop), this CurrencyConverter object provides
 for both classic and Spark jobs methods to <b>convert prices</b> and
-<b>retrieve exchange rates</b>.</p><p>* Usually, one will use the CurrencyConverter this way:</p><pre><span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/path/to/folder/of/rate/files"</span>)
+<b>retrieve exchange rates</b>.</p><p>* Usually, one will use the CurrencyConverter this way:</p><pre><span class="kw">import</span> com.currency_converter.CurrencyConverter
+<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/path/to/folder/of/rate/files"</span>)
 <span class="cmt">// Or when data is stored on Hadoop:</span>
 <span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext)
 <span class="cmt">// And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:</span>
@@ -103,16 +104,13 @@ assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span c
 be csv formated this way:</p><p>	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
 parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
 <span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
-<span class="kw">val</span> customRateLineParser = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> {
+<span class="kw">val</span> customRateLineParser = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
 
-	<span class="kw">val</span> splittedRateLine = rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>)
+	<span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span> <span class="kw">for</span> {
+		exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
+	} <span class="kw">yield</span> ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
 
-	<span class="kw">val</span> date = splittedRateLine(<span class="num">0</span>).replace(<span class="lit">"-"</span>, <span class="lit">""</span>)
-	<span class="kw">val</span> fromCurrency = splittedRateLine(<span class="num">1</span>)
-	<span class="kw">val</span> toCurrency = splittedRateLine(<span class="num">3</span>)
-	<span class="kw">val</span> exchangeRate = splittedRateLine(<span class="num">6</span>).toFloat
-
-	<span class="std">Some</span>(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
+	<span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
 }</pre><p>* Finally, you can request a specific range of dates for the rates to load.
 Indeed, the default dates to load are 20140101 to today. This might be
 either too restrictive or you might want to load less data due to very

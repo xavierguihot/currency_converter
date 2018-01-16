@@ -1,6 +1,6 @@
 name := "currency_converter"
 
-version := "1.1.0"
+version := "1.1.1"
 
 scalaVersion := "2.11.8"
 
@@ -12,7 +12,7 @@ assemblyOutputPath in assembly := file("./" + name.value + "-" + version.value +
 
 wartremoverWarnings in (Compile, compile) ++= Warts.all
 wartremoverWarnings in (Compile, compile) --= Seq(
-	Wart.DefaultArguments, Wart.Nothing, Wart.Equals
+	Wart.DefaultArguments, Wart.Nothing, Wart.Equals, Wart.Overloading
 )
 
 val sparkVersion        = "2.1.0"

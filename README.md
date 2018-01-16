@@ -5,7 +5,7 @@
 ## Overview
 
 
-Version: 1.1.0
+Version: 1.1.1
 
 API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter)
 
@@ -62,16 +62,13 @@ such as:
 ```scala
 import com.currency_converter.model.ExchangeRate
 // For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:
-val customRateLineParser = (rawRateLine: String) => {
+val customRateLineParser = (rawRateLine: String) => rawRateLine.split("\\,", -1) match {
 
-	val splittedRateLine = rawRateLine.split("\\,", -1)
+	case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
+		exchangeRate <- Try(exchangeRate.toDouble).toOption
+	} yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
 
-	val date = splittedRateLine(0).replace("-", "")
-	val fromCurrency = splittedRateLine(1)
-	val toCurrency = splittedRateLine(3)
-	val exchangeRate = splittedRateLine(6).toFloat
-
-	Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
+	case _ => None
 }
 ```
 
@@ -89,7 +86,7 @@ With sbt, add these lines to your build.sbt:
 ```scala
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v1.1.0"
+libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v1.1.1"
 ```
 
 With maven, add these lines to your pom.xml:
@@ -105,7 +102,7 @@ With maven, add these lines to your pom.xml:
 <dependency>
 	<groupId>com.github.xavierguihot</groupId>
 	<artifactId>currency_converter</artifactId>
-	<version>v1.1.0</version>
+	<version>v1.1.1</version>
 </dependency>
 ```
 
@@ -119,6 +116,6 @@ allprojects {
 }
 
 dependencies {
-	compile 'com.github.xavierguihot:currency_converter:v1.1.0'
+	compile 'com.github.xavierguihot:currency_converter:v1.1.1'
 }
 ```

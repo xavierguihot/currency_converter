@@ -1,5 +1,7 @@
 package com.currency_converter.model
 
+import scala.util.Try
+
 /** The representation of an exchange rate.
   *
   * @author Xavier Guihot
@@ -34,13 +36,13 @@ object ExchangeRate {
 	  */
 	def defaultRateLineParser(rawRateLine: String): Option[ExchangeRate] = {
 
-		val splitRateLine = rawRateLine.split("\\,", -1)
+		rawRateLine.split("\\,", -1) match {
 
-		val date          = splitRateLine(0)
-		val fromCurrency  = splitRateLine(1)
-		val toCurrency    = splitRateLine(2)
-		val exchangeRate  = splitRateLine(3).toDouble
+			case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
+				exchangeRate <- Try(exchangeRate.toDouble).toOption
+			} yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
 
-		Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
+			case _ => None
+		}
 	}
 }
