@@ -204,13 +204,12 @@
       </a>
     </span>
       <p class="shortcomment cmt">Default parsing of an exchange rate line.</p><div class="fullcomment"><div class="comment cmt"><p>Default parsing of an exchange rate line.</p><p>If one doesn't provide an alternative method to this one when creating
-the CurrencyConverter object, then this is how lline of rates are parsed.</p><p>The default format is:</p><p>	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate</p><p>	20170327,USD,EUR,0.89</p><p>This returns an Option since users willing to have their custom rate
-line adapter (to their own rate line format) might want to discard
-invalid rate lines, which would thus be filtered by the flatMap calling
-this function.
+the CurrencyConverter object, then this is how lline of rates are parsed.</p><p>The default format is:</p><p>  yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate</p><p>  20170327,USD,EUR,0.89</p><p>This returns an Option since users willing to have their custom rate line
+adapter (to their own rate line format) might want to discard invalid rate
+lines, which would thus be filtered by the flatMap calling this function.
 </p></div><dl class="paramcmts block"><dt class="param">rawRateLine</dt><dd class="cmt"><p>the raw rate to parse, such as:
-	&quot;20170327,USD,EUR,0.89&quot;</p></dd><dt>returns</dt><dd class="cmt"><p>the parsed rate as an ExchangeRate, such as:
-	Some(ExchangeRate(&quot;20170327&quot;, &quot;USD&quot;, &quot;EUR&quot;, 0.89d))</p></dd></dl></div>
+  &quot;20170327,USD,EUR,0.89&quot;</p></dd><dt>returns</dt><dd class="cmt"><p>the parsed rate as an ExchangeRate, such as:
+  Some(ExchangeRate(&quot;20170327&quot;, &quot;USD&quot;, &quot;EUR&quot;, 0.89d))</p></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a>
       <a id="eq(AnyRef):Boolean"></a>
