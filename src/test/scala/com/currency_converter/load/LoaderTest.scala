@@ -59,7 +59,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       "20170228",
       ExchangeRate.defaultRateLineParser
     )
-    var expectedToUsdRates = Map(
+    val expectedToUsdRates = Map(
       "20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
       "20170228" -> Map("SEK" -> 0.11784670500612802d,
                         "EUR" -> 0.8092710086753853d)
@@ -87,7 +87,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       "20170228",
       ExchangeRate.defaultRateLineParser
     )
-    var expectedToUsdRates = Map(
+    val expectedToUsdRates = Map(
       "20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
       "20170228" -> Map("SEK" -> 0.11784670500612802d,
                         "EUR" -> 0.8092710086753853d)
