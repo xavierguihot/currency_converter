@@ -1,6 +1,5 @@
 package com.currency_converter.load
 
-import com.currency_converter.error.CurrencyConverterException
 import com.currency_converter.model.ExchangeRate
 
 import com.holdenkarau.spark.testing.SharedSparkContext

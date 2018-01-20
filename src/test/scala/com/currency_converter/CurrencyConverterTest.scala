@@ -3,7 +3,7 @@ package com.currency_converter
 import com.currency_converter.error.CurrencyConverterException
 import com.currency_converter.model.ExchangeRate
 
-import scala.util.{Success, Failure}
+import scala.util.Success
 
 import com.holdenkarau.spark.testing.SharedSparkContext
 
