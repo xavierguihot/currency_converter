@@ -62,16 +62,14 @@ private[currency_converter] object Loader extends Serializable {
           sparkContext.textFile(currencyFolder),
           firstDateOfRates,
           lastDateOfRates,
-          parseRateLine
-        )
+          parseRateLine)
 
       case None =>
         loadExchangeRatesFromFs(
           currencyFolder,
           firstDateOfRates,
           lastDateOfRates,
-          parseRateLine
-        )
+          parseRateLine)
     }
 
     // Obviously, we can't go on if nothing was loaded:
@@ -141,26 +139,25 @@ private[currency_converter] object Loader extends Serializable {
     val folder = new File(currencyFolder)
 
     require(folder.exists, "folder \"" + currencyFolder + "\" doesn't exsist")
-    require(folder.isDirectory,
-            "folder \"" + currencyFolder + "\" is a file; expecting a folder")
+    require(
+      folder.isDirectory,
+      "folder \"" + currencyFolder + "\" is a file; expecting a folder")
 
     val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
-    currencyFiles
-      .flatMap { currencyFile =>
-        // Let's parse from each file of rate (usuallly one file per date)
-        // the different rates:
-        Source
-          .fromFile(currencyFile, "UTF-8")
-          .getLines
-          .flatMap(rawRate => parseRateLine(rawRate))
-          .filter {
-            case ExchangeRate(date, fromCurrency, toCurrency, _) =>
-              date >= firstDateOfRates && date <= lastDateOfRates &&
-                (fromCurrency == "USD" || toCurrency == "USD")
-          }
-      }
-      .groupBy(rate => rate.date)
+    currencyFiles.flatMap { currencyFile =>
+      // Let's parse from each file of rate (usuallly one file per date)
+      // the different rates:
+      Source
+        .fromFile(currencyFile, "UTF-8")
+        .getLines
+        .flatMap(rawRate => parseRateLine(rawRate))
+        .filter {
+          case ExchangeRate(date, fromCurrency, toCurrency, _) =>
+            date >= firstDateOfRates && date <= lastDateOfRates &&
+              (fromCurrency == "USD" || toCurrency == "USD")
+        }
+    }.groupBy(rate => rate.date)
       .map {
         case (date, usdRates) => {
 

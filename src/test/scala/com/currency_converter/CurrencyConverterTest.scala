@@ -19,38 +19,34 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
   test("Get Exchange Rate") {
 
     val currencyConverter =
-      new CurrencyConverter("src/test/resources/hdfs_rates",
-                            sc,
-                            "20170201",
-                            "20170201")
+      new CurrencyConverter(
+        "src/test/resources/hdfs_rates",
+        sc,
+        "20170201",
+        "20170201")
 
     assert(currencyConverter.allDatesHaveRates())
 
     // Direct application of what's in the rate file:
-    assert(
-      currencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
-        0.93178d))
-    assert(
-      currencyConverter.exchangeRate("USD", "USD", "20170201") === Success(1d))
-    assert(
-      currencyConverter.exchangeRate("USD", "SEK", "20170201") === Success(
-        8.80033d))
-    assert(currencyConverter
-      .exchangeRate("USD", "SEK", "20170201", "yyyyMMdd") === Success(8.80033d))
-    assert(
-      currencyConverter
-        .exchangeRate("USD", "EUR", "2017-02-01", "yyyy-MM-dd") === Success(
-        0.93178d))
-    assert(
-      currencyConverter
-        .exchangeRate("USD", "USD", "2017-02-01", "yyyy-MM-dd") === Success(1d))
-    assert(
-      currencyConverter
-        .exchangeRate("USD", "SEK", "2017-02-01", "yyyy-MM-dd") === Success(
-        8.80033d))
-    assert(
-      currencyConverter
-        .exchangeRate("USD", "EUR", "170201", "yyMMdd") === Success(0.93178d))
+    var rate = currencyConverter.exchangeRate("USD", "EUR", "20170201")
+    assert(rate === Success(0.93178d))
+    rate = currencyConverter.exchangeRate("USD", "USD", "20170201")
+    assert(rate === Success(1d))
+    rate = currencyConverter.exchangeRate("USD", "SEK", "20170201")
+    assert(rate === Success(8.80033d))
+    rate = currencyConverter.exchangeRate("USD", "SEK", "20170201", "yyyyMMdd")
+    assert(rate === Success(8.80033d))
+    rate = currencyConverter
+      .exchangeRate("USD", "EUR", "2017-02-01", "yyyy-MM-dd")
+    assert(rate === Success(0.93178d))
+    rate = currencyConverter
+      .exchangeRate("USD", "USD", "2017-02-01", "yyyy-MM-dd")
+    assert(rate === Success(1d))
+    rate = currencyConverter
+      .exchangeRate("USD", "SEK", "2017-02-01", "yyyy-MM-dd")
+    assert(rate === Success(8.80033d))
+    rate = currencyConverter.exchangeRate("USD", "EUR", "170201", "yyMMdd")
+    assert(rate === Success(0.93178d))
 
     // Opposite:
     assert(
@@ -93,18 +89,16 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     exception = intercept[CurrencyConverterException] {
       currencyConverter.exchangeRate("...", "SEK", "20170201").get
     }
-    var expectedMessage = (
+    var expectedMessage =
       "No exchange rate for currency \"...\" for date \"20170201\"."
-    )
     assert(exception.getMessage === expectedMessage)
     exception = intercept[CurrencyConverterException] {
       currencyConverter
         .exchangeRate("...", "SEK", "2017-02-01", "yyyy-MM-dd")
         .get
     }
-    expectedMessage = (
+    expectedMessage =
       "No exchange rate for currency \"...\" for date \"20170201\"."
-    )
     assert(exception.getMessage === expectedMessage)
 
     // With a non existing currency, but from this currency to the same
@@ -139,8 +133,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       sc,
       "20170201",
       "20170201",
-      customRateLineParser
-    )
+      customRateLineParser)
 
     assert(
       currencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
@@ -161,10 +154,10 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Get Exchange Rate after Loading Rates from a Classic File System") {
 
-    val currencyConverter =
-      new CurrencyConverter("src/test/resources/hdfs_rates",
-                            "20170201",
-                            "20170201")
+    val currencyConverter = new CurrencyConverter(
+      "src/test/resources/hdfs_rates",
+      "20170201",
+      "20170201")
 
     assert(
       currencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
@@ -178,11 +171,11 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Get Converted Price") {
 
-    val currencyConverter =
-      new CurrencyConverter("src/test/resources/hdfs_rates",
-                            sc,
-                            "20170201",
-                            "20170201")
+    val currencyConverter = new CurrencyConverter(
+      "src/test/resources/hdfs_rates",
+      sc,
+      "20170201",
+      "20170201")
 
     assert(
       currencyConverter.convert(1d, "USD", "USD", "20170201") === Success(1d))
@@ -233,11 +226,11 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Get Exchange Rate with Fallback") {
 
-    val currencyConverter =
-      new CurrencyConverter("src/test/resources/hdfs_rates_fallback",
-                            sc,
-                            "20170201",
-                            "20170228")
+    val currencyConverter = new CurrencyConverter(
+      "src/test/resources/hdfs_rates_fallback",
+      sc,
+      "20170201",
+      "20170228")
 
     assert(!currencyConverter.allDatesHaveRates())
 
@@ -248,31 +241,23 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     var exchangeRate =
       currencyConverter.getExchangeRateAndFallBack("USD", "SEK", "20170228")
     assert(exchangeRate === Success(8.4856d))
-    exchangeRate = currencyConverter.getExchangeRateAndFallBack("USD",
-                                                                "SEK",
-                                                                "2017-02-28",
-                                                                "yyyy-MM-dd")
+    exchangeRate = currencyConverter
+      .getExchangeRateAndFallBack("USD", "SEK", "2017-02-28", "yyyy-MM-dd")
     assert(exchangeRate === Success(8.4856d))
-    var exchangeRateTuple =
-      currencyConverter.getExchangeRateAndFallBackWithDetail(
-        "USD",
-        "SEK",
-        "20170228"
-      )
+    var exchangeRateTuple = currencyConverter
+      .getExchangeRateAndFallBackWithDetail("USD", "SEK", "20170228")
     assert(exchangeRateTuple === Success((8.4856d, "20170228")))
     exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
       "USD",
       "SEK",
       "20170228",
-      "yyyyMMdd"
-    )
+      "yyyyMMdd")
     assert(exchangeRateTuple === Success((8.4856d, "20170228")))
     exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
       "USD",
       "SEK",
       "2017-02-28",
-      "yyyy-MM-dd"
-    )
+      "yyyy-MM-dd")
     assert(exchangeRateTuple === Success((8.4856d, "20170228")))
 
     // 2: USD to EUR rate is not available for 20170228, but is available for
@@ -281,65 +266,36 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     assert(
       currencyConverter.exchangeRate("USD", "EUR", "20170227") === Success(
         1.25d))
-    exchangeRate = currencyConverter.getExchangeRateAndFallBack(
-      "USD",
-      "EUR",
-      "20170228"
-    )
+    exchangeRate = currencyConverter
+      .getExchangeRateAndFallBack("USD", "EUR", "20170228")
     assert(exchangeRate === Success(1.25d))
-    exchangeRate = currencyConverter.getExchangeRateAndFallBack(
-      "USD",
-      "EUR",
-      "170228",
-      "yyMMdd"
-    )
+    exchangeRate = currencyConverter
+      .getExchangeRateAndFallBack("USD", "EUR", "170228", "yyMMdd")
     assert(exchangeRate === Success(1.25d))
-    exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
-      "USD",
-      "EUR",
-      "20170228"
-    )
+    exchangeRateTuple = currencyConverter
+      .getExchangeRateAndFallBackWithDetail("USD", "EUR", "20170228")
     assert(exchangeRateTuple === Success((1.25d, "20170227")))
-    exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
-      "USD",
-      "EUR",
-      "170228",
-      "yyMMdd"
-    )
+    exchangeRateTuple = currencyConverter
+      .getExchangeRateAndFallBackWithDetail("USD", "EUR", "170228", "yyMMdd")
     assert(exchangeRateTuple === Success((1.25d, "20170227")))
 
     // 3: USD to EUR rate is not available for 20170228, and not availbale for
     // 20170227 but is available for 20170201:
     assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
     assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-    assert(
-      currencyConverter.exchangeRate("USD", "GBP", "20170201") === Success(
-        0.79919d))
-    exchangeRate = currencyConverter.getExchangeRateAndFallBack(
-      "USD",
-      "GBP",
-      "20170228"
-    )
+    exchangeRate = currencyConverter.exchangeRate("USD", "GBP", "20170201")
     assert(exchangeRate === Success(0.79919d))
-    exchangeRate = currencyConverter.getExchangeRateAndFallBack(
-      "USD",
-      "GBP",
-      "2017-02-28",
-      "yyyy-MM-dd"
-    )
+    exchangeRate = currencyConverter
+      .getExchangeRateAndFallBack("USD", "GBP", "20170228")
     assert(exchangeRate === Success(0.79919d))
-    exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
-      "USD",
-      "GBP",
-      "20170228"
-    )
+    exchangeRate = currencyConverter
+      .getExchangeRateAndFallBack("USD", "GBP", "2017-02-28", "yyyy-MM-dd")
+    assert(exchangeRate === Success(0.79919d))
+    exchangeRateTuple = currencyConverter
+      .getExchangeRateAndFallBackWithDetail("USD", "GBP", "20170228")
     assert(exchangeRateTuple === Success((0.79919d, "20170201")))
-    exchangeRateTuple = currencyConverter.getExchangeRateAndFallBackWithDetail(
-      "USD",
-      "GBP",
-      "170228",
-      "yyMMdd"
-    )
+    exchangeRateTuple = currencyConverter
+      .getExchangeRateAndFallBackWithDetail("USD", "GBP", "170228", "yyMMdd")
     assert(exchangeRateTuple === Success((0.79919d, "20170201")))
 
     // 4: Let's check we do get an exception if there are absolutly no dates
@@ -349,10 +305,9 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
         .getExchangeRateAndFallBackWithDetail("USD", "XXX", "20170228")
         .get
     }
-    var expectedMessage = (
+    var expectedMessage =
       "No exchange rate between currencies \"USD\" and \"XXX\" could " +
         "be found even after fallback on previous dates."
-    )
     assert(exception.getMessage === expectedMessage)
     // With another format:
     exception = intercept[CurrencyConverterException] {
@@ -373,78 +328,61 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Get Converted Price with Fallback") {
 
-    val currencyConverter =
-      new CurrencyConverter(
-        "src/test/resources/hdfs_rates_fallback",
-        sc,
-        "20170201",
-        "20170228"
-      )
+    val currencyConverter = new CurrencyConverter(
+      "src/test/resources/hdfs_rates_fallback",
+      sc,
+      "20170201",
+      "20170228")
 
     // 1: Let's try even if there's no need to fallback:
-    assert(
-      currencyConverter.convert(2d, "USD", "SEK", "20170228") === Success(
-        16.9712d))
-    assert(
-      currencyConverter
-        .convertAndFallBack(2d, "USD", "SEK", "20170228") === Success(16.9712d))
-    assert(
-      currencyConverter
-        .convertAndFallBack(2d, "USD", "SEK", "170228", "yyMMdd") === Success(
-        16.9712d))
-    var convertedPriceTuple =
-      currencyConverter.convertAndFallBackWithDetail(
+
+    var convertedPrice = currencyConverter.convert(2d, "USD", "SEK", "20170228")
+    assert(convertedPrice === Success(16.9712d))
+
+    convertedPrice = currencyConverter
+      .convertAndFallBack(2d, "USD", "SEK", "20170228")
+    assert(convertedPrice === Success(16.9712d))
+
+    convertedPrice = currencyConverter
+      .convertAndFallBack(2d, "USD", "SEK", "170228", "yyMMdd")
+    assert(convertedPrice === Success(16.9712d))
+
+    var convertedPriceTuple = currencyConverter
+      .convertAndFallBackWithDetail(2d, "USD", "SEK", "20170228")
+    assert(convertedPriceTuple === Success((16.9712d, "20170228")))
+
+    convertedPriceTuple = currencyConverter
+      .convertAndFallBackWithDetail(
         2d,
         "USD",
         "SEK",
-        "20170228"
-      )
-    assert(convertedPriceTuple === Success((16.9712d, "20170228")))
-    convertedPriceTuple = currencyConverter.convertAndFallBackWithDetail(
-      2d,
-      "USD",
-      "SEK",
-      "2017-02-28",
-      "yyyy-MM-dd"
-    )
+        "2017-02-28",
+        "yyyy-MM-dd")
     assert(convertedPriceTuple === Success((16.9712d, "20170228")))
 
     // 2: USD to EUR rate is not available for 20170228, and not availbale for
     // 20170227 but is available for 20170201:
+
     assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
     assert(currencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
-    assert(
-      currencyConverter.convert(2d, "USD", "GBP", "20170201") === Success(
-        1.59838d))
-    var convertedPrice = currencyConverter.convertAndFallBack(
-      2d,
-      "USD",
-      "GBP",
-      "20170228"
-    )
+
+    convertedPrice = currencyConverter.convert(2d, "USD", "GBP", "20170201")
     assert(convertedPrice === Success(1.59838d))
-    convertedPrice = currencyConverter.convertAndFallBack(
-      2d,
-      "USD",
-      "GBP",
-      "2017-02-28",
-      "yyyy-MM-dd"
-    )
+
+    convertedPrice = currencyConverter
+      .convertAndFallBack(2d, "USD", "GBP", "20170228")
     assert(convertedPrice === Success(1.59838d))
-    convertedPriceTuple = currencyConverter.convertAndFallBackWithDetail(
-      2d,
-      "USD",
-      "GBP",
-      "20170228"
-    )
+
+    convertedPrice = currencyConverter
+      .convertAndFallBack(2d, "USD", "GBP", "2017-02-28", "yyyy-MM-dd")
+    assert(convertedPrice === Success(1.59838d))
+
+    convertedPriceTuple = currencyConverter
+      .convertAndFallBackWithDetail(2d, "USD", "GBP", "20170228")
     assert(convertedPriceTuple === Success((1.59838d, "20170201")))
-    convertedPriceTuple = currencyConverter.convertAndFallBackWithDetail(
-      2d,
-      "USD",
-      "GBP",
-      "170228",
-      "yyMMdd"
-    )
+
+    convertedPriceTuple = currencyConverter
+      .convertAndFallBackWithDetail(2d, "USD", "GBP", "170228", "yyMMdd")
     assert(convertedPriceTuple === Success((1.59838d, "20170201")))
 
     // 3: Let's check we do get an exception if there are absolutly no dates

@@ -103,8 +103,7 @@ class CurrencyConverter private (
       sparkContext,
       firstDateOfRates,
       lastDateOfRates,
-      rateLineParser
-    )
+      rateLineParser)
 
   /** Converts a price from currency XXX to YYY.
     *
@@ -393,8 +392,7 @@ class CurrencyConverter private (
           getExchangeRateAndFallBackWithDetail(
             fromCurrency,
             toCurrency,
-            dayBefore
-          )
+            dayBefore)
         else
           Failure(
             CurrencyConverterException(
@@ -536,11 +534,12 @@ class CurrencyConverter private (
       lastDateOfRates: String,
       rateLineParser: String => Option[ExchangeRate]
   ) {
-    this(currencyFolder,
-         None,
-         firstDateOfRates,
-         lastDateOfRates,
-         rateLineParser)
+    this(
+      currencyFolder,
+      None,
+      firstDateOfRates,
+      lastDateOfRates,
+      rateLineParser)
   }
 
   /** Creates a CurrencyConverter for data stored on HDFS.
@@ -616,11 +615,12 @@ class CurrencyConverter private (
       lastDateOfRates: String,
       rateLineParser: String => Option[ExchangeRate]
   ) {
-    this(currencyFolder,
-         Some(sparkContext),
-         firstDateOfRates,
-         lastDateOfRates,
-         rateLineParser)
+    this(
+      currencyFolder,
+      Some(sparkContext),
+      firstDateOfRates,
+      lastDateOfRates,
+      rateLineParser)
   }
 }
 
@@ -628,14 +628,12 @@ private object CurrencyConverter {
 
   /** We do not catch errors here. User should be owner of its inputs and should
     * be aware in case the date or format provided gives an exception */
-  private def yyyyMMddDate(date: String, inputFormat: String): String = {
+  private def yyyyMMddDate(date: String, inputFormat: String): String =
     DateTimeFormat
       .forPattern("yyyyMMdd")
       .print(DateTimeFormat.forPattern(inputFormat).parseDateTime(date))
-  }
 
   /** Retrieve today's date */
-  private def today(): String = {
+  private def today(): String =
     DateTimeFormat.forPattern("yyyyMMdd").print(new DateTime())
-  }
 }

@@ -37,12 +37,12 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       rawRates,
       "20171224",
       "20171225",
-      ExchangeRate.defaultRateLineParser
-    )
+      ExchangeRate.defaultRateLineParser)
 
     val expectedToUsdRates = Map(
-      "20171224" -> Map("SEK" -> 0.12004300002683321d,
-                        "EUR" -> 1.0573283427435556d),
+      "20171224" -> Map(
+        "SEK" -> 0.12004300002683321d,
+        "EUR" -> 1.0573283427435556d),
       "20171225" -> Map("SEK" -> 0.119829215d)
     )
 
@@ -57,12 +57,12 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       Some(sc),
       "20170227",
       "20170228",
-      ExchangeRate.defaultRateLineParser
-    )
+      ExchangeRate.defaultRateLineParser)
     val expectedToUsdRates = Map(
       "20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
-      "20170228" -> Map("SEK" -> 0.11784670500612802d,
-                        "EUR" -> 0.8092710086753853d)
+      "20170228" -> Map(
+        "SEK" -> 0.11784670500612802d,
+        "EUR" -> 0.8092710086753853d)
     )
     assert(computedToUSDrates === expectedToUsdRates)
 
@@ -72,8 +72,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       Some(sc),
       "20170226",
       "20170228",
-      ExchangeRate.defaultRateLineParser
-    )
+      ExchangeRate.defaultRateLineParser)
     assert(computedToUSDrates === expectedToUsdRates)
   }
 
@@ -85,12 +84,12 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       None,
       "20170227",
       "20170228",
-      ExchangeRate.defaultRateLineParser
-    )
+      ExchangeRate.defaultRateLineParser)
     val expectedToUsdRates = Map(
       "20170227" -> Map("SEK" -> 0.12004300002683321d, "EUR" -> 0.8d),
-      "20170228" -> Map("SEK" -> 0.11784670500612802d,
-                        "EUR" -> 0.8092710086753853d)
+      "20170228" -> Map(
+        "SEK" -> 0.11784670500612802d,
+        "EUR" -> 0.8092710086753853d)
     )
     assert(computedToUSDrates === expectedToUsdRates)
 
@@ -100,8 +99,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       None,
       "20170226",
       "20170228",
-      ExchangeRate.defaultRateLineParser
-    )
+      ExchangeRate.defaultRateLineParser)
     assert(computedToUSDrates === expectedToUsdRates)
   }
 }
