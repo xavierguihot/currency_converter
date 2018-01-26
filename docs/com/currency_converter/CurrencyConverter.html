@@ -62,14 +62,14 @@ for both classic and Spark jobs methods to <b>convert prices</b> and
 currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)
 currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)</pre><p>* It's often the case that one doesn't need to have the exact exchange rate
 of the requested date if the rate isn't available for this date. In this
-case, the following methods give the possibility to fallback on the rate of
+case, one case use the fallback option in order to fallback on the rate of
 previous dates when it's not available for the given date:</p><pre><span class="cmt">// if:</span>
 assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
 assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.93</span>d))
 <span class="cmt">// then:</span>
-assert(currencyConverter.getExchangeRateAndFallBack(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">0.9317799</span>d))
-assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">1.59838</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">0.93</span>d))
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">1.59</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
 be csv formated this way:</p><p>  yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
 parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
 <span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
@@ -77,7 +77,10 @@ parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.m
 
   <span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span> <span class="kw">for</span> {
     exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
-  } <span class="kw">yield</span> ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
+    yyyyMMddDate <span class="kw">&lt;-</span> Try(DateTimeFormat
+      .forPattern(<span class="lit">"yyyyMMdd"</span>)
+      .print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))).toOption
+  } <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
 
   <span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
 }</pre><p>* Finally, you can request a specific range of dates for the rates to load.
@@ -436,92 +439,41 @@ actions if one date has no rates.
               
         </dd></dl></div>
     </li><li name="com.currency_converter.CurrencyConverter#convert" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
-      <a id="convert(Double,String,String,String,String):Try[Double]"></a>
+      <a id="convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]"></a>
+      <a id="convert(Double,String,String,String,String,Boolean):Try[Double]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">convert</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
+        <span class="name">convert</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>, <span name="fallback">fallback: <span class="extype" name="scala.Boolean">Boolean</span> = <span class="symbol">false</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <p class="shortcomment cmt">Converts a price from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY.</p><pre>assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) == Success(<span class="num">13.41</span>d))
-assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>) == Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallBack" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convertAndFallBack(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
-      <a id="convertAndFallBack(Double,String,String,String,String):Try[Double]"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">convertAndFallBack</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallBack(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Converts a price from currency XXX to YYY and if needed and possible,
-fallback on earlier date.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY and if needed and possible,
-fallback on earlier date.</p><p>If the rate is missing for the requested date, this provides a way to try
-and get the conversion from a previous date.</p><p>For instance, if the USD/GBP rate is requested for 20170328, but there is
-no data for 20170328, then this method will check if the USD/GBP rate is
-available for the previous date (20170327) and use this one instead. But
-if it's still not available, this will check for the previous day again
-(20170326) and if it's available, this rate will be used. And so on, up to
-the &quot;firstDateOfRates&quot; provided in the CurrencyConverter constructor.</p><p>Even if this is supposed to return a fall back value based on rates of
-previous dates, the return type is embedded in a Try. Indeed, it might
-happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"170201"</span>, <span class="lit">"yyMMdd"</span>) == Success(<span class="num">13.41</span>d))
+assert(currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>)
+  == Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre><p>In case the rate to use for the conversion is missing for the requested
+date, and you still prefer to get a conversion for an older rate from a
+previous date than a Failure, then you can use the fallback option.</p><p>For instance, if you request a conversion for the USD/GBP rate for
+20170328, but there is no data for 20170328, then this method will check
+if the USD/GBP rate is available for the previous date (20170327) and use
+this one instead. But if it's still not available, this will check for the
+previous day again (20170326) and if it's available, this rate will be
+used. And so on, up to the &quot;firstDateOfRates&quot; provided in the
+CurrencyConverter constructor.</p><pre><span class="cmt">// if:</span>
 assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
 assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">1.59838</span>d))
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">1.59</span>d))
 <span class="cmt">// then:</span>
-assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">1.59838</span>d))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#convertAndFallBackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="convertAndFallBackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]"></a>
-      <a id="convertAndFallBackWithDetail(Double,String,String,String,String):Try[(Double,String)]"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">convertAndFallBackWithDetail</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[(<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)]</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convertAndFallBackWithDetail(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Converts a price from currency XXX to YYY and if needed and possible,
-fallback on earlier date.</p><div class="fullcomment"><div class="comment cmt"><p>Converts a price from currency XXX to YYY and if needed and possible,
-fallback on earlier date.</p><p>If the rate is missing for the requested date, this provides a way to try
-and get the conversion from a previous date.</p><p>For instance, if the USD/GBP rate is requested for 20170328, but there is
-no data for 20170328, then this method will check if the USD/GBP rate is
-available for the previous date (20170327) and use this one instead. But
-if it's still not available, this will check for the previous day again
-(20170326) and if it's available, this rate will be used. And so on, up to
-the &quot;firstDateOfRates&quot; provided in the CurrencyConverter constructor.</p><p>This method returns a tuple with the converted price and the date for
-which this a rate was available.</p><p>Even if this is supposed to return a fall back value based on rates of
-previous dates, the return type is embedded in a Try. Indeed, it might
-happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">1.59838</span>d))
-<span class="cmt">// then:</span>
-assert(currencyConverter.convertAndFallBackWithDetail(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success((<span class="num">1.59838</span>d, <span class="lit">"20170226"</span>)))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the tuple (price converted in currency YYY, date used for the
-rate).</p></dd></dl></div>
+assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">1.59</span>d))</pre></div><dl class="paramcmts block"><dt class="param">price</dt><dd class="cmt"><p>the price in currency XXX</p></dd><dt class="param">fromCurrency</dt><dd class="cmt"><p>the currency for which the price is given</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the currency in which we want to convert the price</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the price</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+the date of the requested exchange rate.</p></dd><dt class="param">fallback</dt><dd class="cmt"><p>(default false) whether to go back and find the rate in
+the past if the rate is not available for the conversion for the requested
+date.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency YYY</p></dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a>
       <a id="eq(AnyRef):Boolean"></a>
@@ -557,24 +509,39 @@ rate).</p></dd></dl></div>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="com.currency_converter.CurrencyConverter#exchangeRate" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
-      <a id="exchangeRate(String,String,String,String):Try[Double]"></a>
+      <a id="exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]"></a>
+      <a id="exchangeRate(String,String,String,String,Boolean):Try[Double]"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">exchangeRate</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
+        <span class="name">exchangeRate</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>, <span name="fallback">fallback: <span class="extype" name="scala.Boolean">Boolean</span> = <span class="symbol">false</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter@exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY.</p><pre>assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) == Success(<span class="num">9.44</span>d))
-assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>) == Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl></div>
+assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"170201"</span>, <span class="lit">"yyMMdd"</span>) == Success(<span class="num">9.44</span>d))
+assert(currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"?#~"</span>, <span class="lit">"20170201"</span>) ==
+  Failure(CurrencyConverterException(<span class="lit">"No exchange rate for currency \"?#~\" for date \"20170201\"."</span>)))</pre><p>In case the rate is missing for the requested date, and you still prefer
+to get an older rate from a previous date than a Failure, then you can use
+the fallback option.</p><p>For instance, if you request the USD/GBP rate for 20170328, but there is
+no data for 20170328, then this method will check if the USD/GBP rate is
+available for the previous date (20170327) and use this one instead. But
+if it's still not available, this will check for the previous day again
+(20170326) and if it's available, this rate will be used. And so on, up to
+the &quot;firstDateOfRates&quot; provided in the CurrencyConverter constructor.</p><pre><span class="cmt">// if:</span>
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.93</span>d))
+<span class="cmt">// then:</span>
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">0.93</span>d))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
+the date of the requested exchange rate.</p></dd><dt class="param">fallback</dt><dd class="cmt"><p>(default false) whether to go back and find the rate in
+the past if the rate is not available for the requested date.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate from currency XXX to YYY</p></dd></dl></div>
     </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
       <a id="finalize():Unit"></a>
@@ -615,76 +582,6 @@ the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallBack" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRateAndFallBack(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]"></a>
-      <a id="getExchangeRateAndFallBack(String,String,String,String):Try[Double]"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">getExchangeRateAndFallBack</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallBack(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[Double]" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY and fallback on earlier
-date.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY and fallback on earlier
-date.</p><p>In case the rate is missing for the requested date, this provides a way to
-try and get the rate from a previous date.</p><p>For instance, if the USD/GBP rate is requested for 20170328, but there is
-no data for 20170328, then this method will check if the USD/GBP rate is
-available for the previous date (20170327) and use this one instead. But
-if it's still not available, this will check for the previous day again
-(20170326) and if it's available, this rate will be used. And so on, up to
-the &quot;firstDateOfRates&quot; provided in the CurrencyConverter constructor.</p><p>Even if this is supposed to return a fall back value based on rates of
-previous dates, the return type is embedded in a Try. Indeed, it might
-happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
-<span class="cmt">// then:</span>
-assert(currencyConverter.getExchangeRateAndFallBack(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">0.9317799</span>d))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>the exchange rate for the requested date or the earliest previous
-date for which there was available data.</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#getExchangeRateAndFallBackWithDetail" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getExchangeRateAndFallBackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]"></a>
-      <a id="getExchangeRateAndFallBackWithDetail(String,String,String,String):Try[(Double,String)]"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">getExchangeRateAndFallBackWithDetail</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[(<span class="extype" name="scala.Double">Double</span>, <span class="extype" name="scala.Predef.String">String</span>)]</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getExchangeRateAndFallBackWithDetail(fromCurrency:String,toCurrency:String,forDate:String,format:String):scala.util.Try[(Double,String)]" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Returns the exchange rate from currency XXX to YYY and fallback on earlier
-date.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the exchange rate from currency XXX to YYY and fallback on earlier
-date.</p><p>In case the rate is missing for the requested date, this provides a way to
-try and get the rate from a previous date.</p><p>For instance, if the USD/GBP rate is requested for 20170328, but there is
-no data for 20170328, then this method will check if the USD/GBP rate is
-available for the previous date (20170327) and use this one instead. But
-if it's still not available, this will check for the previous day again
-(20170326) and if it's available, this rate will be used. And so on, up to
-the &quot;firstDateOfRates&quot; provided in the CurrencyConverter constructor.</p><p>This method returns a tuple with the rate and the date for which this rate
-was available.</p><p>Even if this is supposed to return a fall back value based on rates of
-previous dates, the return type is embedded in a Try. Indeed, it might
-happen that even when using older rates, no rate could be available.</p><pre><span class="cmt">// if:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
-<span class="cmt">// then:</span>
-assert(currencyConverter.getExchangeRateAndFallBackWithDetail(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Succcess((<span class="num">0.9317799</span>d, <span class="lit">"20170226"</span>)))</pre></div><dl class="paramcmts block"><dt class="param">fromCurrency</dt><dd class="cmt"><p>the source currency</p></dd><dt class="param">toCurrency</dt><dd class="cmt"><p>the target currency</p></dd><dt class="param">forDate</dt><dd class="cmt"><p>the date for which we want the exchange rate</p></dd><dt class="param">format</dt><dd class="cmt"><p>(default = &quot;yyyyMMdd&quot;) the format under which is provided
-the date of the requested exchange rate.</p></dd><dt>returns</dt><dd class="cmt"><p>a tuple such as (12.5d, &quot;20170324&quot;) with the exchange rate from
-currency XXX to YYY and the date this currency was for (the requested date
-if data was available or a previous date otherwise).</p></dd></dl></div>
     </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
       <a id="hashCode():Int"></a>

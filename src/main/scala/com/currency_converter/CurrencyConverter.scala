@@ -36,17 +36,17 @@ import scala.util.{Try, Success, Failure}
   *
   * * It's often the case that one doesn't need to have the exact exchange rate
   * of the requested date if the rate isn't available for this date. In this
-  * case, the following methods give the possibility to fallback on the rate of
+  * case, one case use the fallback option in order to fallback on the rate of
   * previous dates when it's not available for the given date:
   *
   * {{{
   * // if:
   * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
   * assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.9317799d))
+  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.93d))
   * // then:
-  * assert(currencyConverter.getExchangeRateAndFallBack("USD", "GBP", "20170228") == Success(0.9317799d))
-  * assert(currencyConverter.convertAndFallBack(2d, "USD", "GBP", "20170228") == Success(1.59838d))
+  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228", fallback = true) == Success(0.93d))
+  * assert(currencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) == Success(1.59d))
   * }}}
   *
   * * To load exchange rate data, this tool expects your exchange rate data to
@@ -64,7 +64,10 @@ import scala.util.{Try, Success, Failure}
   *
   *   case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
   *     exchangeRate <- Try(exchangeRate.toDouble).toOption
-  *   } yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
+  *     yyyyMMddDate <- Try(DateTimeFormat
+  *       .forPattern("yyyyMMdd")
+  *       .print(DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(date))).toOption
+  *   } yield ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
   *
   *   case _ => None
   * }
@@ -109,7 +112,30 @@ class CurrencyConverter private (
     *
     * {{{
     * assert(currencyConverter.convert(12.5d, "EUR", "USD", "20170201") == Success(13.41d))
-    * assert(currencyConverter.convert(12.5d, "EUR", "?#~", "20170201") == Failure(CurrencyConverterException("No exchange rate for currency \"?#~\" for date \"20170201\".")))
+    * assert(currencyConverter.convert(12.5d, "EUR", "USD", "170201", "yyMMdd") == Success(13.41d))
+    * assert(currencyConverter.convert(12.5d, "EUR", "?#~", "20170201")
+    *   == Failure(CurrencyConverterException("No exchange rate for currency \"?#~\" for date \"20170201\".")))
+    * }}}
+    *
+    * In case the rate to use for the conversion is missing for the requested
+    * date, and you still prefer to get a conversion for an older rate from a
+    * previous date than a Failure, then you can use the fallback option.
+    *
+    * For instance, if you request a conversion for the USD/GBP rate for
+    * 20170328, but there is no data for 20170328, then this method will check
+    * if the USD/GBP rate is available for the previous date (20170327) and use
+    * this one instead. But if it's still not available, this will check for the
+    * previous day again (20170326) and if it's available, this rate will be
+    * used. And so on, up to the "firstDateOfRates" provided in the
+    * CurrencyConverter constructor.
+    *
+    * {{{
+    * // if:
+    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
+    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
+    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170226") == Success(1.59d))
+    * // then:
+    * assert(currencyConverter.convertAndFallBack(2d, "USD", "GBP", "20170228", fallback = true) == Success(1.59d))
     * }}}
     *
     * @param price the price in currency XXX
@@ -118,6 +144,9 @@ class CurrencyConverter private (
     * @param forDate the date for which we want the price
     * @param format (default = "yyyyMMdd") the format under which is provided
     * the date of the requested exchange rate.
+    * @param fallback (default false) whether to go back and find the rate in
+    * the past if the rate is not available for the conversion for the requested
+    * date.
     * @return the price converted in currency YYY
     */
   def convert(
@@ -125,17 +154,40 @@ class CurrencyConverter private (
       fromCurrency: String,
       toCurrency: String,
       forDate: String,
-      format: String = "yyyyMMdd"
+      format: String = "yyyyMMdd",
+      fallback: Boolean = false
   ): Try[Double] =
     for {
-      rate <- exchangeRate(fromCurrency, toCurrency, forDate, format)
+      rate <- exchangeRate(fromCurrency, toCurrency, forDate, format, fallback)
     } yield price * rate
 
   /** Returns the exchange rate from currency XXX to YYY.
     *
     * {{{
     * assert(currencyConverter.exchangeRate("EUR", "SEK", "20170201") == Success(9.44d))
-    * assert(currencyConverter.exchangeRate("EUR", "?#~", "20170201") == Failure(CurrencyConverterException("No exchange rate for currency \"?#~\" for date \"20170201\".")))
+    * assert(currencyConverter.exchangeRate("EUR", "SEK", "170201", "yyMMdd") == Success(9.44d))
+    * assert(currencyConverter.exchangeRate("EUR", "?#~", "20170201") ==
+    *   Failure(CurrencyConverterException("No exchange rate for currency \"?#~\" for date \"20170201\".")))
+    * }}}
+    *
+    * In case the rate is missing for the requested date, and you still prefer
+    * to get an older rate from a previous date than a Failure, then you can use
+    * the fallback option.
+    *
+    * For instance, if you request the USD/GBP rate for 20170328, but there is
+    * no data for 20170328, then this method will check if the USD/GBP rate is
+    * available for the previous date (20170327) and use this one instead. But
+    * if it's still not available, this will check for the previous day again
+    * (20170326) and if it's available, this rate will be used. And so on, up to
+    * the "firstDateOfRates" provided in the CurrencyConverter constructor.
+    *
+    * {{{
+    * // if:
+    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
+    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
+    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.93d))
+    * // then:
+    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228", fallback = true) == Success(0.93d))
     * }}}
     *
     * @param fromCurrency the source currency
@@ -143,13 +195,16 @@ class CurrencyConverter private (
     * @param forDate the date for which we want the exchange rate
     * @param format (default = "yyyyMMdd") the format under which is provided
     * the date of the requested exchange rate.
+    * @param fallback (default false) whether to go back and find the rate in
+    * the past if the rate is not available for the requested date.
     * @return the exchange rate from currency XXX to YYY
     */
   def exchangeRate(
       fromCurrency: String,
       toCurrency: String,
       forDate: String,
-      format: String = "yyyyMMdd"
+      format: String = "yyyyMMdd",
+      fallback: Boolean = false
   ): Try[Double] = {
 
     // This is not an optimization since its rare to apply it (a user usually
@@ -166,239 +221,36 @@ class CurrencyConverter private (
 
       val date = CurrencyConverter.yyyyMMddDate(forDate, format)
 
-      for {
+      val rate = for {
         sourceCurrencyToUsdRate <- getToUsdRate(fromCurrency, date)
         targetCurrencyToUsdRate <- getToUsdRate(toCurrency, date)
       } yield sourceCurrencyToUsdRate * (1d / targetCurrencyToUsdRate)
-    }
-  }
 
-  /** Converts a price from currency XXX to YYY and if needed and possible,
-    * fallback on earlier date.
-    *
-    * If the rate is missing for the requested date, this provides a way to try
-    * and get the conversion from a previous date.
-    *
-    * For instance, if the USD/GBP rate is requested for 20170328, but there is
-    * no data for 20170328, then this method will check if the USD/GBP rate is
-    * available for the previous date (20170327) and use this one instead. But
-    * if it's still not available, this will check for the previous day again
-    * (20170326) and if it's available, this rate will be used. And so on, up to
-    * the "firstDateOfRates" provided in the CurrencyConverter constructor.
-    *
-    * Even if this is supposed to return a fall back value based on rates of
-    * previous dates, the return type is embedded in a Try. Indeed, it might
-    * happen that even when using older rates, no rate could be available.
-    *
-    * {{{
-    * // if:
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170226") == Success(1.59838d))
-    * // then:
-    * assert(currencyConverter.convertAndFallBack(2d, "USD", "GBP", "20170228") == Success(1.59838d))
-    * }}}
-    *
-    * @param price the price in currency XXX
-    * @param fromCurrency the currency for which the price is given
-    * @param toCurrency the currency in which we want to convert the price
-    * @param forDate the date for which we want the price
-    * @param format (default = "yyyyMMdd") the format under which is provided
-    * the date of the requested exchange rate.
-    * @return the price converted in currency YYY
-    */
-  def convertAndFallBack(
-      price: Double,
-      fromCurrency: String,
-      toCurrency: String,
-      forDate: String,
-      format: String = "yyyyMMdd"
-  ): Try[Double] =
-    for {
+      rate match {
 
-      (convertedPrice, fallBackDate) <- convertAndFallBackWithDetail(
-        price,
-        fromCurrency,
-        toCurrency,
-        forDate,
-        format)
+        case Success(rate) => Success(rate)
 
-    } yield convertedPrice
+        case Failure(exception) => {
 
-  /** Converts a price from currency XXX to YYY and if needed and possible,
-    * fallback on earlier date.
-    *
-    * If the rate is missing for the requested date, this provides a way to try
-    * and get the conversion from a previous date.
-    *
-    * For instance, if the USD/GBP rate is requested for 20170328, but there is
-    * no data for 20170328, then this method will check if the USD/GBP rate is
-    * available for the previous date (20170327) and use this one instead. But
-    * if it's still not available, this will check for the previous day again
-    * (20170326) and if it's available, this rate will be used. And so on, up to
-    * the "firstDateOfRates" provided in the CurrencyConverter constructor.
-    *
-    * This method returns a tuple with the converted price and the date for
-    * which this a rate was available.
-    *
-    * Even if this is supposed to return a fall back value based on rates of
-    * previous dates, the return type is embedded in a Try. Indeed, it might
-    * happen that even when using older rates, no rate could be available.
-    *
-    * {{{
-    * // if:
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
-    * assert(currencyConverter.convert(2d, "USD", "GBP", "20170226") == Success(1.59838d))
-    * // then:
-    * assert(currencyConverter.convertAndFallBackWithDetail(2d, "USD", "GBP", "20170228") == Success((1.59838d, "20170226")))
-    * }}}
-    *
-    * @param price the price in currency XXX
-    * @param fromCurrency the currency for which the price is given
-    * @param toCurrency the currency in which we want to convert the price
-    * @param forDate the date for which we want the price
-    * @param format (default = "yyyyMMdd") the format under which is provided
-    * the date of the requested exchange rate.
-    * @return the tuple (price converted in currency YYY, date used for the
-    * rate).
-    */
-  def convertAndFallBackWithDetail(
-      price: Double,
-      fromCurrency: String,
-      toCurrency: String,
-      forDate: String,
-      format: String = "yyyyMMdd"
-  ): Try[(Double, String)] =
-    for {
+          if (!fallback)
+            Failure(exception)
+          else {
 
-      (exchangeRate, fallBackDate) <- getExchangeRateAndFallBackWithDetail(
-        fromCurrency,
-        toCurrency,
-        forDate,
-        format)
+            val formatter = DateTimeFormat.forPattern("yyyyMMdd")
 
-    } yield (price * exchangeRate, fallBackDate)
+            val dayBefore =
+              formatter.print(formatter.parseDateTime(date).minusDays(1))
 
-  /** Returns the exchange rate from currency XXX to YYY and fallback on earlier
-    * date.
-    *
-    * In case the rate is missing for the requested date, this provides a way to
-    * try and get the rate from a previous date.
-    *
-    * For instance, if the USD/GBP rate is requested for 20170328, but there is
-    * no data for 20170328, then this method will check if the USD/GBP rate is
-    * available for the previous date (20170327) and use this one instead. But
-    * if it's still not available, this will check for the previous day again
-    * (20170326) and if it's available, this rate will be used. And so on, up to
-    * the "firstDateOfRates" provided in the CurrencyConverter constructor.
-    *
-    * Even if this is supposed to return a fall back value based on rates of
-    * previous dates, the return type is embedded in a Try. Indeed, it might
-    * happen that even when using older rates, no rate could be available.
-    *
-    * {{{
-    * // if:
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.9317799d))
-    * // then:
-    * assert(currencyConverter.getExchangeRateAndFallBack("USD", "GBP", "20170228") == Success(0.9317799d))
-    * }}}
-    *
-    * @param fromCurrency the source currency
-    * @param toCurrency the target currency
-    * @param forDate the date for which we want the exchange rate
-    * @param format (default = "yyyyMMdd") the format under which is provided
-    * the date of the requested exchange rate.
-    * @return the exchange rate for the requested date or the earliest previous
-    * date for which there was available data.
-    */
-  def getExchangeRateAndFallBack(
-      fromCurrency: String,
-      toCurrency: String,
-      forDate: String,
-      format: String = "yyyyMMdd"
-  ): Try[Double] =
-    for {
-
-      (exchangeRate, fallBackDate) <- getExchangeRateAndFallBackWithDetail(
-        fromCurrency,
-        toCurrency,
-        forDate,
-        format)
-
-    } yield exchangeRate
-
-  /** Returns the exchange rate from currency XXX to YYY and fallback on earlier
-    * date.
-    *
-    * In case the rate is missing for the requested date, this provides a way to
-    * try and get the rate from a previous date.
-    *
-    * For instance, if the USD/GBP rate is requested for 20170328, but there is
-    * no data for 20170328, then this method will check if the USD/GBP rate is
-    * available for the previous date (20170327) and use this one instead. But
-    * if it's still not available, this will check for the previous day again
-    * (20170326) and if it's available, this rate will be used. And so on, up to
-    * the "firstDateOfRates" provided in the CurrencyConverter constructor.
-    *
-    * This method returns a tuple with the rate and the date for which this rate
-    * was available.
-    *
-    * Even if this is supposed to return a fall back value based on rates of
-    * previous dates, the return type is embedded in a Try. Indeed, it might
-    * happen that even when using older rates, no rate could be available.
-    *
-    * {{{
-    * // if:
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-    * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.9317799d))
-    * // then:
-    * assert(currencyConverter.getExchangeRateAndFallBackWithDetail("USD", "GBP", "20170228") == Succcess((0.9317799d, "20170226")))
-    * }}}
-    *
-    * @param fromCurrency the source currency
-    * @param toCurrency the target currency
-    * @param forDate the date for which we want the exchange rate
-    * @return a tuple such as (12.5d, "20170324") with the exchange rate from
-    * currency XXX to YYY and the date this currency was for (the requested date
-    * if data was available or a previous date otherwise).
-    * @param format (default = "yyyyMMdd") the format under which is provided
-    * the date of the requested exchange rate.
-    */
-  def getExchangeRateAndFallBackWithDetail(
-      fromCurrency: String,
-      toCurrency: String,
-      forDate: String,
-      format: String = "yyyyMMdd"
-  ): Try[(Double, String)] = {
-
-    val date = CurrencyConverter.yyyyMMddDate(forDate, format)
-
-    exchangeRate(fromCurrency, toCurrency, date) match {
-
-      case Success(rate) => Success((rate, date))
-
-      case Failure(_) => {
-
-        val formatter = DateTimeFormat.forPattern("yyyyMMdd")
-
-        val dayBefore =
-          formatter.print(formatter.parseDateTime(date).minusDays(1))
-
-        if (dayBefore >= firstDateOfRates)
-          getExchangeRateAndFallBackWithDetail(
-            fromCurrency,
-            toCurrency,
-            dayBefore)
-        else
-          Failure(
-            CurrencyConverterException(
-              "No exchange rate between currencies \"" + fromCurrency +
-                "\" and \"" + toCurrency + "\" could be found even after " +
-                "fallback on previous dates."))
+            if (dayBefore >= firstDateOfRates)
+              exchangeRate(fromCurrency, toCurrency, dayBefore, fallback = true)
+            else
+              Failure(
+                CurrencyConverterException(
+                  "No exchange rate between currencies \"" + fromCurrency +
+                    "\" and \"" + toCurrency + "\" could be found even after " +
+                    "fallback on previous dates."))
+          }
+        }
       }
     }
   }

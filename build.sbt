@@ -1,6 +1,6 @@
 name := "currency_converter"
 
-version := "1.1.1"
+version := "2.0.0"
 
 scalaVersion := "2.11.8"
 

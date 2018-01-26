@@ -95,14 +95,14 @@ for both classic and Spark jobs methods to <b>convert prices</b> and
 currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)
 currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)</pre><p>* It's often the case that one doesn't need to have the exact exchange rate
 of the requested date if the rate isn't available for this date. In this
-case, the following methods give the possibility to fallback on the rate of
+case, one case use the fallback option in order to fallback on the rate of
 previous dates when it's not available for the given date:</p><pre><span class="cmt">// if:</span>
 assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
 assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.9317799</span>d))
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.93</span>d))
 <span class="cmt">// then:</span>
-assert(currencyConverter.getExchangeRateAndFallBack(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">0.9317799</span>d))
-assert(currencyConverter.convertAndFallBack(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>) == Success(<span class="num">1.59838</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
+assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">0.93</span>d))
+assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">1.59</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
 be csv formated this way:</p><p>  yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
 parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
 <span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
@@ -110,7 +110,10 @@ parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.m
 
   <span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span> <span class="kw">for</span> {
     exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
-  } <span class="kw">yield</span> ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
+    yyyyMMddDate <span class="kw">&lt;-</span> Try(DateTimeFormat
+      .forPattern(<span class="lit">"yyyyMMdd"</span>)
+      .print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))).toOption
+  } <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
 
   <span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
 }</pre><p>* Finally, you can request a specific range of dates for the rates to load.

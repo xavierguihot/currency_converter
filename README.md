@@ -5,7 +5,7 @@
 ## Overview
 
 
-Version: 1.1.1
+Version: 2.0.0
 
 API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter)
 
@@ -37,18 +37,18 @@ currencyConverter.convert(12.5d, "EUR", "USD", "20170201")
 ```
 
 It's often the case that one doesn't need to have the exact exchange rate of the
-requested date if the rate isn't available for this date. In this case, the
-following methods give the possibility to fallback on the rate of previous dates
-when it's not available for the given date:
+requested date if the rate isn't available for this date. In this case, one case
+use the fallback option in order to fallback on the rate of previous dates when
+it's not available for the given date:
 
 ```scala
 // if:
 assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
 assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.9317799d))
+assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.93d))
 // then:
-assert(currencyConverter.getExchangeRateAndFallBack("USD", "GBP", "20170228") == Success(0.9317799d))
-assert(currencyConverter.convertAndFallBack(2d, "USD", "GBP", "20170228") == Success(1.59838d))
+assert(currencyConverter.exchangeRate("USD", "GBP", "20170228", fallback = true) == Success(0.93d))
+assert(currencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) == Success(1.59d))
 ```
 
 To load exchange rate data, this tool expects your exchange rate data to be csv
@@ -61,14 +61,18 @@ such as:
 
 ```scala
 import com.currency_converter.model.ExchangeRate
-// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:
+// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178,
+// you could use this kind of parser:
 val customRateLineParser = (rawRateLine: String) => rawRateLine.split("\\,", -1) match {
 
-	case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
-		exchangeRate <- Try(exchangeRate.toDouble).toOption
-	} yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
+  case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
+    exchangeRate <- Try(exchangeRate.toDouble).toOption
+    yyyyMMddDate <- Try(DateTimeFormat
+      .forPattern("yyyyMMdd")
+      .print(DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(date))).toOption
+  } yield ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
 
-	case _ => None
+  case _ => None
 }
 ```
 
@@ -86,7 +90,7 @@ With sbt, add these lines to your build.sbt:
 ```scala
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v1.1.1"
+libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v2.0.0"
 ```
 
 With maven, add these lines to your pom.xml:
@@ -102,7 +106,7 @@ With maven, add these lines to your pom.xml:
 <dependency>
 	<groupId>com.github.xavierguihot</groupId>
 	<artifactId>currency_converter</artifactId>
-	<version>v1.1.1</version>
+	<version>v2.0.0</version>
 </dependency>
 ```
 
@@ -116,6 +120,6 @@ allprojects {
 }
 
 dependencies {
-	compile 'com.github.xavierguihot:currency_converter:v1.1.1'
+	compile 'com.github.xavierguihot:currency_converter:v2.0.0'
 }
 ```
