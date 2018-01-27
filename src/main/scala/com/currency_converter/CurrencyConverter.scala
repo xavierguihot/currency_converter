@@ -85,8 +85,6 @@ import scala.util.{Try, Success, Failure}
   * master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
   * CurrencyConverter</a>
   *
-  * @todo change convertAndFallBack to convert(fallback: Boolean = true)
-  *
   * @author Xavier Guihot
   * @since 2017-02
   */
