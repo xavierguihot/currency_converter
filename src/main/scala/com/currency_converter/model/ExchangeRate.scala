@@ -36,16 +36,12 @@ object ExchangeRate {
     * @return the parsed rate as an ExchangeRate, such as:
     *   Some(ExchangeRate("20170327", "USD", "EUR", 0.89d))
     */
-  def defaultRateLineParser(rawRateLine: String): Option[ExchangeRate] = {
-
+  def defaultRateLineParser(rawRateLine: String): Option[ExchangeRate] =
     rawRateLine.split("\\,", -1) match {
-
       case Array(date, fromCurrency, toCurrency, exchangeRate) =>
-        for {
-          exchangeRate <- Try(exchangeRate.toDouble).toOption
-        } yield ExchangeRate(date, fromCurrency, toCurrency, exchangeRate)
-
+        Try(
+          ExchangeRate(date, fromCurrency, toCurrency, exchangeRate.toDouble)
+        ).toOption
       case _ => None
     }
-  }
 }

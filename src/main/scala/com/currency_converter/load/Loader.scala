@@ -73,7 +73,7 @@ private[currency_converter] object Loader extends Serializable {
     }
 
     // Obviously, we can't go on if nothing was loaded:
-    require(!toUsdRates.isEmpty, "no exchange rates found.")
+    require(toUsdRates.nonEmpty, "no exchange rates found.")
 
     toUsdRates
   }
@@ -94,23 +94,20 @@ private[currency_converter] object Loader extends Serializable {
   ): Map[String, Map[String, Double]] = {
 
     rawRates
-      .flatMap(rawRate => parseRateLine(rawRate))
+      .flatMap(parseRateLine(_))
       .filter {
-        case ExchangeRate(date, fromCurrency, toCurrency, _) =>
+        case ExchangeRate(date, fromCurr, toCurr, _) =>
           date >= firstDateOfRates && date <= lastDateOfRates &&
-            (fromCurrency == "USD" || toCurrency == "USD")
+            (fromCurr == "USD" || toCurr == "USD")
       }
-      .groupBy(rate => rate.date)
+      .groupBy(_.date)
       .map {
         case (date, usdRates) => {
 
           // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
           val toUsdRates = usdRates.map {
-            case ExchangeRate(_, fromCurrency, toCurrency, rate) =>
-              toCurrency match {
-                case "USD" => (fromCurrency, rate)
-                case _     => (toCurrency, 1d / rate)
-              }
+            case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
+            case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
 
           (date, toUsdRates)
@@ -138,10 +135,10 @@ private[currency_converter] object Loader extends Serializable {
 
     val folder = new File(currencyFolder)
 
-    require(folder.exists, "folder \"" + currencyFolder + "\" doesn't exsist")
+    require(folder.exists, s"folder $currencyFolder doesn't exsist")
     require(
       folder.isDirectory,
-      "folder \"" + currencyFolder + "\" is a file; expecting a folder")
+      s"folder $currencyFolder is a file; expecting a folder")
 
     val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
@@ -151,23 +148,20 @@ private[currency_converter] object Loader extends Serializable {
       Source
         .fromFile(currencyFile, "UTF-8")
         .getLines
-        .flatMap(rawRate => parseRateLine(rawRate))
+        .flatMap(parseRateLine(_))
         .filter {
-          case ExchangeRate(date, fromCurrency, toCurrency, _) =>
+          case ExchangeRate(date, fromCurr, toCurr, _) =>
             date >= firstDateOfRates && date <= lastDateOfRates &&
-              (fromCurrency == "USD" || toCurrency == "USD")
+              (fromCurr == "USD" || toCurr == "USD")
         }
-    }.groupBy(rate => rate.date)
+    }.groupBy(_.date)
       .map {
         case (date, usdRates) => {
 
           // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
           val toUsdRates = usdRates.map {
-            case ExchangeRate(_, fromCurrency, toCurrency, rate) =>
-              toCurrency match {
-                case "USD" => (fromCurrency, rate)
-                case _     => (toCurrency, 1d / rate)
-              }
+            case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
+            case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
 
           (date, toUsdRates)

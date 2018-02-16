@@ -155,9 +155,8 @@ class CurrencyConverter private (
       format: String = "yyyyMMdd",
       fallback: Boolean = false
   ): Try[Double] =
-    for {
-      rate <- exchangeRate(fromCurrency, toCurrency, forDate, format, fallback)
-    } yield price * rate
+    exchangeRate(fromCurrency, toCurrency, forDate, format, fallback)
+      .map(_ * price)
 
   /** Returns the exchange rate from currency XXX to YYY.
     *
@@ -273,12 +272,10 @@ class CurrencyConverter private (
     val startDate = dateFormatter.parseDateTime(firstDateOfRates)
     val lastDate = dateFormatter.parseDateTime(lastDateOfRates)
 
-    val missingDates =
-      (0 to Days.daysBetween(startDate, lastDate).getDays()).toList
-        .map(dayNbr => dateFormatter.print(startDate.plusDays(dayNbr)))
-        .filter(date => !toUsdRates.contains(date))
-
-    missingDates.isEmpty
+    (0 to Days.daysBetween(startDate, lastDate).getDays()).toList
+      .map(dayNbr => dateFormatter.print(startDate.plusDays(dayNbr)))
+      .filter(date => !toUsdRates.contains(date))
+      .isEmpty
   }
 
   // Internal core:
@@ -301,14 +298,14 @@ class CurrencyConverter private (
         toUsdRates.get(date) match {
 
           case Some(ratesForDate) =>
-            ratesForDate.get(currency) match {
-              case Some(currencyToUsdRate) => Success(currencyToUsdRate)
-              case None =>
+            ratesForDate
+              .get(currency)
+              .map(Success(_))
+              .getOrElse(
                 Failure(
                   CurrencyConverterException(
                     "No exchange rate for currency \"" + currency +
-                      "\" for date \"" + date + "\"."))
-            }
+                      "\" for date \"" + date + "\".")))
 
           case None =>
             Failure(
