@@ -273,6 +273,8 @@ object CurrencyConverter extends Serializable {
     */
   def allDatesHaveRates(): Boolean = {
 
+    requiresLoad
+
     val dateFormatter = DateTimeFormat.forPattern("yyyyMMdd")
 
     val startDate = dateFormatter.parseDateTime(firstDateOfRates)
@@ -292,6 +294,8 @@ object CurrencyConverter extends Serializable {
     * @return the rate from the currency to USD
     */
   private def getToUsdRate(currency: String, date: String): Try[Double] = {
+
+    requiresLoad
 
     currency match {
 
@@ -325,4 +329,13 @@ object CurrencyConverter extends Serializable {
   /** Retrieve today's date */
   private def today: String =
     DateTimeFormat.forPattern("yyyyMMdd").print(new DateTime())
+
+  private def requiresLoad: Unit = {
+    require(
+      toUsdRates.nonEmpty,
+      "exchange rates should be loaded first using either " +
+        "CurrencyConverter.load(\"currency/folder\") or " +
+        "CurrencyConverter.loadFromSpark(\"currency/folder\", sc)"
+    )
+  }
 }

@@ -16,6 +16,17 @@ import org.scalatest.FunSuite
   */
 class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
+  test("Check that an exception is thrown when data is yet to load") {
+    val exceptionThrown = intercept[IllegalArgumentException] {
+      CurrencyConverter.convert(2d, "USD", "EUR", "20170327").get
+    }
+    val expectedMessage =
+      "requirement failed: exchange rates should be loaded first using " +
+        "either CurrencyConverter.load(\"currency/folder\") or " +
+        "CurrencyConverter.loadFromSpark(\"currency/folder\", sc)"
+    assert(exceptionThrown.getMessage === expectedMessage)
+  }
+
   test("Get Exchange Rate") {
 
     CurrencyConverter.setFirstDate("20170201")
