@@ -93,6 +93,8 @@ private[currency_converter] object Loader extends Serializable {
       parseRateLine: String => Option[ExchangeRate]
   ): Map[String, Map[String, Double]] = {
 
+    println("CurrencyConverter: Loading exchange rates from hdfs")
+
     rawRates
       .flatMap(parseRateLine(_))
       .filter {
@@ -127,6 +129,8 @@ private[currency_converter] object Loader extends Serializable {
       lastDateOfRates: String,
       parseRateLine: String => Option[ExchangeRate]
   ): Map[String, Map[String, Double]] = {
+
+    println("CurrencyConverter: Loading exchange rates")
 
     val folder = new File(currencyFolder)
 

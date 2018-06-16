@@ -23,7 +23,8 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
         "src/test/resources/hdfs_rates",
         sc,
         "20170201",
-        "20170201")
+        "20170201"
+      )
 
     assert(currencyConverter.allDatesHaveRates())
 
@@ -347,5 +348,23 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       "No exchange rate between currencies \"USD\" and \"XXX\" could " +
         "be found even after fallback on previous dates."
     assert(exception.getMessage === expectedMessage)
+  }
+
+  test("Check everything is Serializable") {
+
+    val currencyConverterBr = sc.broadcast(
+      new CurrencyConverter(
+        "src/test/resources/hdfs_rates",
+        sc,
+        "20170201",
+        "20170201"
+      )
+    )
+
+    val toCurrencies = sc.parallelize(Array("EUR", "USD"), 2)
+    val rates = toCurrencies.map(
+      cur => currencyConverterBr.value.exchangeRate("USD", cur, "20170201")
+    )
+    assert(rates.collect === Array(Success(0.93178d), Success(1d)))
   }
 }
