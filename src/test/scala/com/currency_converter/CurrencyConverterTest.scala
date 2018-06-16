@@ -16,69 +16,76 @@ import org.scalatest.FunSuite
   */
 class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
+  test("Check that an exception is thrown when data is yet to load") {
+    val exceptionThrown = intercept[IllegalArgumentException] {
+      CurrencyConverter.convert(2d, "USD", "EUR", "20170327").get
+    }
+    val expectedMessage =
+      "requirement failed: exchange rates should be loaded first using " +
+        "either CurrencyConverter.load(\"currency/folder\") or " +
+        "CurrencyConverter.loadFromSpark(\"currency/folder\", sc)"
+    assert(exceptionThrown.getMessage === expectedMessage)
+  }
+
   test("Get Exchange Rate") {
 
-    val currencyConverter =
-      new CurrencyConverter(
-        "src/test/resources/hdfs_rates",
-        sc,
-        "20170201",
-        "20170201"
-      )
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170201")
+    CurrencyConverter.loadFromSpark("src/test/resources/hdfs_rates", sc)
 
-    assert(currencyConverter.allDatesHaveRates())
+    assert(CurrencyConverter.allDatesHaveRates())
 
     // Direct application of what's in the rate file:
-    var rate = currencyConverter.exchangeRate("USD", "EUR", "20170201")
+    var rate = CurrencyConverter.exchangeRate("USD", "EUR", "20170201")
     assert(rate === Success(0.93178d))
-    rate = currencyConverter.exchangeRate("USD", "USD", "20170201")
+    rate = CurrencyConverter.exchangeRate("USD", "USD", "20170201")
     assert(rate === Success(1d))
-    rate = currencyConverter.exchangeRate("USD", "SEK", "20170201")
+    rate = CurrencyConverter.exchangeRate("USD", "SEK", "20170201")
     assert(rate === Success(8.80033d))
-    rate = currencyConverter
+    rate = CurrencyConverter
       .exchangeRate("USD", "EUR", "2017-02-01", "yyyy-MM-dd")
     assert(rate === Success(0.93178d))
-    rate = currencyConverter
+    rate = CurrencyConverter
       .exchangeRate("USD", "USD", "2017-02-01", "yyyy-MM-dd")
     assert(rate === Success(1d))
-    rate = currencyConverter
+    rate = CurrencyConverter
       .exchangeRate("USD", "SEK", "2017-02-01", "yyyy-MM-dd")
     assert(rate === Success(8.80033d))
-    rate = currencyConverter.exchangeRate("USD", "EUR", "170201", "yyMMdd")
+    rate = CurrencyConverter.exchangeRate("USD", "EUR", "170201", "yyMMdd")
     assert(rate === Success(0.93178d))
 
     // Opposite:
     assert(
-      currencyConverter.exchangeRate("EUR", "USD", "20170201") === Success(
+      CurrencyConverter.exchangeRate("EUR", "USD", "20170201") === Success(
         1.0732147073343492d))
     assert(
-      currencyConverter.exchangeRate("SEK", "USD", "20170201") === Success(
+      CurrencyConverter.exchangeRate("SEK", "USD", "20170201") === Success(
         0.1136321024325224d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("EUR", "USD", "2017-02-01", "yyyy-MM-dd") === Success(
         1.0732147073343492d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("SEK", "USD", "2017-02-01", "yyyy-MM-dd") === Success(
         0.1136321024325224d))
 
     // With something else than USD:
     assert(
-      currencyConverter.exchangeRate("EUR", "SEK", "20170201") === Success(
+      CurrencyConverter.exchangeRate("EUR", "SEK", "20170201") === Success(
         9.444643585395694d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("EUR", "SEK", "2017-02-01", "yyyy-MM-dd") === Success(
         9.444643585395694d))
 
     // With a non existing date:
     var exception = intercept[CurrencyConverterException] {
-      currencyConverter.exchangeRate("EUR", "SEK", "20170202").get
+      CurrencyConverter.exchangeRate("EUR", "SEK", "20170202").get
     }
     assert(exception.getMessage === "No exchange rate for date \"20170202\".")
     exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("EUR", "SEK", "2017-02-02", "yyyy-MM-dd")
         .get
     }
@@ -86,13 +93,13 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
     // With a missing currency:
     exception = intercept[CurrencyConverterException] {
-      currencyConverter.exchangeRate("...", "SEK", "20170201").get
+      CurrencyConverter.exchangeRate("...", "SEK", "20170201").get
     }
     var expectedMessage =
       "No exchange rate for currency \"...\" for date \"20170201\"."
     assert(exception.getMessage === expectedMessage)
     exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("...", "SEK", "2017-02-01", "yyyy-MM-dd")
         .get
     }
@@ -103,7 +110,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     // With a non existing currency, but from this currency to the same
     // currency:
     assert(
-      currencyConverter.exchangeRate("XXX", "XXX", "20110719") === Success(1d))
+      CurrencyConverter.exchangeRate("XXX", "XXX", "20110719") === Success(1d))
   }
 
   test("Get Exchange Rate after Loading with a Custom Rate Format") {
@@ -115,161 +122,158 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     // Notice how we use a function here and not a method (val instead of
     // def), because otherwise, the method is not Serializable and this will
     // throw a not Serializable exception at run time:
-    val customRateLineParser = (rawRateLine: String) => {
+    def customRateLineParser: String => Some[ExchangeRate] =
+      (rawRateLine: String) => {
 
-      val splitRateLine = rawRateLine.split("\\,", -1)
+        val splitRateLine = rawRateLine.split("\\,", -1)
 
-      val date = splitRateLine(0).replace("-", "")
-      val fromCurrency = splitRateLine(1)
-      val toCurrency = splitRateLine(3)
-      val exchangeRate = splitRateLine(6).toFloat
+        val date = splitRateLine(0).replace("-", "")
+        val fromCurrency = splitRateLine(1)
+        val toCurrency = splitRateLine(3)
+        val exchangeRate = splitRateLine(6).toFloat
 
-      Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
-    }
+        Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
+      }
 
-    val currencyConverter = new CurrencyConverter(
-      "src/test/resources/hdfs_rates_custom_format",
-      sc,
-      "20170201",
-      "20170201",
-      customRateLineParser)
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170201")
+    CurrencyConverter.setLineParser(customRateLineParser)
+    CurrencyConverter
+      .loadFromSpark("src/test/resources/hdfs_rates_custom_format", sc)
 
     assert(
-      currencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
+      CurrencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
         0.9317799806594848d))
     assert(
-      currencyConverter.exchangeRate("USD", "USD", "20170201") === Success(1d))
+      CurrencyConverter.exchangeRate("USD", "USD", "20170201") === Success(1d))
     assert(
-      currencyConverter.exchangeRate("USD", "SEK", "20170201") === Success(
+      CurrencyConverter.exchangeRate("USD", "SEK", "20170201") === Success(
         8.80033016204834d))
     assert(
-      currencyConverter.exchangeRate("EUR", "USD", "20170201") === Success(
+      CurrencyConverter.exchangeRate("EUR", "USD", "20170201") === Success(
         1.073214729610558d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("EUR", "SEK", "2017-02-01", "yyyy-MM-dd") === Success(
         9.444643955346347d))
   }
 
   test("Get Exchange Rate after Loading Rates from a Classic File System") {
 
-    val currencyConverter = new CurrencyConverter(
-      "src/test/resources/hdfs_rates",
-      "20170201",
-      "20170201")
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170201")
+    CurrencyConverter.setLineParser(ExchangeRate.defaultRateLineParser)
+    CurrencyConverter.load("src/test/resources/hdfs_rates")
 
     assert(
-      currencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
+      CurrencyConverter.exchangeRate("USD", "EUR", "20170201") === Success(
         0.93178d))
     assert(
-      currencyConverter.exchangeRate("USD", "USD", "20170201") === Success(1d))
+      CurrencyConverter.exchangeRate("USD", "USD", "20170201") === Success(1d))
     assert(
-      currencyConverter.exchangeRate("USD", "SEK", "20170201") === Success(
+      CurrencyConverter.exchangeRate("USD", "SEK", "20170201") === Success(
         8.80033d))
   }
 
   test("Get Converted Price") {
 
-    val currencyConverter = new CurrencyConverter(
-      "src/test/resources/hdfs_rates",
-      sc,
-      "20170201",
-      "20170201")
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170201")
+    CurrencyConverter.loadFromSpark("src/test/resources/hdfs_rates", sc)
 
     assert(
-      currencyConverter.convert(1d, "USD", "USD", "20170201") === Success(1d))
+      CurrencyConverter.convert(1d, "USD", "USD", "20170201") === Success(1d))
     assert(
-      currencyConverter.convert(1d, "EUR", "USD", "20170201") === Success(
+      CurrencyConverter.convert(1d, "EUR", "USD", "20170201") === Success(
         1.0732147073343492d))
     assert(
-      currencyConverter.convert(1d, "EUR", "SEK", "20170201") === Success(
+      CurrencyConverter.convert(1d, "EUR", "SEK", "20170201") === Success(
         9.444643585395694d))
 
     assert(
-      currencyConverter
+      CurrencyConverter
         .convert(1d, "USD", "USD", "170201", "yyMMdd") === Success(1d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .convert(1d, "EUR", "USD", "2017-02-01", "yyyy-MM-dd") === Success(
         1.0732147073343492d))
     assert(
-      currencyConverter
+      CurrencyConverter
         .convert(1d, "EUR", "SEK", "170201", "yyMMdd") === Success(
         9.444643585395694d))
 
     assert(
-      currencyConverter.convert(12.5d, "USD", "USD", "20170201") === Success(
+      CurrencyConverter.convert(12.5d, "USD", "USD", "20170201") === Success(
         12.5d))
     assert(
-      currencyConverter.convert(12.5d, "EUR", "USD", "20170201") === Success(
+      CurrencyConverter.convert(12.5d, "EUR", "USD", "20170201") === Success(
         13.415183841679365d))
     assert(
-      currencyConverter.convert(12.5d, "EUR", "SEK", "20170201") === Success(
+      CurrencyConverter.convert(12.5d, "EUR", "SEK", "20170201") === Success(
         118.05804481744617d))
 
     // With a non existing date (this is all taken care of by getExchangeRate,
     // but let's test it anyway):
     var exception = intercept[CurrencyConverterException] {
-      currencyConverter.convert(12.5d, "EUR", "SEK", "20170202").get
+      CurrencyConverter.convert(12.5d, "EUR", "SEK", "20170202").get
     }
     assert(exception.getMessage === "No exchange rate for date \"20170202\".")
     exception = intercept[CurrencyConverterException] {
-      currencyConverter.convert(12.5d, "EUR", "SEK", "170202", "yyMMdd").get
+      CurrencyConverter.convert(12.5d, "EUR", "SEK", "170202", "yyMMdd").get
     }
     assert(exception.getMessage === "No exchange rate for date \"20170202\".")
   }
 
   test("Get Exchange Rate with Fallback") {
 
-    val currencyConverter = new CurrencyConverter(
-      "src/test/resources/hdfs_rates_fallback",
-      sc,
-      "20170201",
-      "20170228")
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170228")
+    CurrencyConverter
+      .loadFromSpark("src/test/resources/hdfs_rates_fallback", sc)
 
-    assert(!currencyConverter.allDatesHaveRates())
+    assert(!CurrencyConverter.allDatesHaveRates())
 
     // 1: Let's try even if there's no need to fallback:
     assert(
-      currencyConverter.exchangeRate("USD", "SEK", "20170228") === Success(
+      CurrencyConverter.exchangeRate("USD", "SEK", "20170228") === Success(
         8.4856d))
     var exchangeRate =
-      currencyConverter.exchangeRate("USD", "SEK", "20170228", fallback = true)
+      CurrencyConverter.exchangeRate("USD", "SEK", "20170228", fallback = true)
     assert(exchangeRate === Success(8.4856d))
-    exchangeRate = currencyConverter
+    exchangeRate = CurrencyConverter
       .exchangeRate("USD", "SEK", "2017-02-28", "yyyy-MM-dd", fallback = true)
     assert(exchangeRate === Success(8.4856d))
 
     // 2: USD to EUR rate is not available for 20170228, but is available for
     // 20170227:
-    assert(currencyConverter.exchangeRate("USD", "EUR", "20170228").isFailure)
+    assert(CurrencyConverter.exchangeRate("USD", "EUR", "20170228").isFailure)
     assert(
-      currencyConverter.exchangeRate("USD", "EUR", "20170227") === Success(
+      CurrencyConverter.exchangeRate("USD", "EUR", "20170227") === Success(
         1.25d))
-    exchangeRate = currencyConverter
+    exchangeRate = CurrencyConverter
       .exchangeRate("USD", "EUR", "20170228", fallback = true)
     assert(exchangeRate === Success(1.25d))
-    exchangeRate = currencyConverter
+    exchangeRate = CurrencyConverter
       .exchangeRate("USD", "EUR", "170228", "yyMMdd", fallback = true)
     assert(exchangeRate === Success(1.25d))
 
     // 3: USD to EUR rate is not available for 20170228, and not available for
     // 20170227 but is available for 20170201:
-    assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
-    assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-    exchangeRate = currencyConverter.exchangeRate("USD", "GBP", "20170201")
+    assert(CurrencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
+    assert(CurrencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
+    exchangeRate = CurrencyConverter.exchangeRate("USD", "GBP", "20170201")
     assert(exchangeRate === Success(0.79919d))
-    exchangeRate = currencyConverter
+    exchangeRate = CurrencyConverter
       .exchangeRate("USD", "GBP", "20170228", fallback = true)
     assert(exchangeRate === Success(0.79919d))
-    exchangeRate = currencyConverter
+    exchangeRate = CurrencyConverter
       .exchangeRate("USD", "GBP", "2017-02-28", "yyyy-MM-dd", fallback = true)
     assert(exchangeRate === Success(0.79919d))
 
     // 4: Let's check we do get an exception if there are absolutely no dates
     // with the requested rate:
     var exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("USD", "XXX", "20170228", fallback = true)
         .get
     }
@@ -279,7 +283,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     assert(exception.getMessage === expectedMessage)
     // With another format:
     exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .exchangeRate("USD", "XXX", "2017-02-28", "yyyy-MM-dd", fallback = true)
         .get
     }
@@ -291,46 +295,45 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Get Converted Price with Fallback") {
 
-    val currencyConverter = new CurrencyConverter(
-      "src/test/resources/hdfs_rates_fallback",
-      sc,
-      "20170201",
-      "20170228")
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170228")
+    CurrencyConverter
+      .loadFromSpark("src/test/resources/hdfs_rates_fallback", sc)
 
     // 1: Let's try even if there's no need to fallback:
 
-    var convertedPrice = currencyConverter.convert(2d, "USD", "SEK", "20170228")
+    var convertedPrice = CurrencyConverter.convert(2d, "USD", "SEK", "20170228")
     assert(convertedPrice === Success(16.9712d))
 
-    convertedPrice = currencyConverter
+    convertedPrice = CurrencyConverter
       .convert(2d, "USD", "SEK", "20170228", fallback = true)
     assert(convertedPrice === Success(16.9712d))
 
-    convertedPrice = currencyConverter
+    convertedPrice = CurrencyConverter
       .convert(2d, "USD", "SEK", "170228", "yyMMdd", fallback = true)
     assert(convertedPrice === Success(16.9712d))
 
     // 2: USD to EUR rate is not available for 20170228, and not available for
     // 20170227 but is available for 20170201:
 
-    assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
-    assert(currencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
+    assert(CurrencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
+    assert(CurrencyConverter.convert(2d, "USD", "GBP", "20170227").isFailure)
 
-    convertedPrice = currencyConverter.convert(2d, "USD", "GBP", "20170201")
+    convertedPrice = CurrencyConverter.convert(2d, "USD", "GBP", "20170201")
     assert(convertedPrice === Success(1.59838d))
 
-    convertedPrice = currencyConverter
+    convertedPrice = CurrencyConverter
       .convert(2d, "USD", "GBP", "20170228", fallback = true)
     assert(convertedPrice === Success(1.59838d))
 
-    convertedPrice = currencyConverter
+    convertedPrice = CurrencyConverter
       .convert(2d, "USD", "GBP", "2017-02-28", "yyyy-MM-dd", fallback = true)
     assert(convertedPrice === Success(1.59838d))
 
     // 3: Let's check we do get an exception if there are absolutely no dates
     // with the requested rate:
     var exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .convert(2d, "USD", "XXX", "20170228", fallback = true)
         .get
     }
@@ -340,7 +343,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     assert(exception.getMessage === expectedMessage)
     // With another format
     exception = intercept[CurrencyConverterException] {
-      currencyConverter
+      CurrencyConverter
         .convert(2d, "USD", "XXX", "170228", "yyMMdd", fallback = true)
         .get
     }
@@ -352,14 +355,11 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
 
   test("Check everything is Serializable") {
 
-    val currencyConverterBr = sc.broadcast(
-      new CurrencyConverter(
-        "src/test/resources/hdfs_rates",
-        sc,
-        "20170201",
-        "20170201"
-      )
-    )
+    CurrencyConverter.setFirstDate("20170201")
+    CurrencyConverter.setLastDate("20170201")
+    CurrencyConverter.loadFromSpark("src/test/resources/hdfs_rates", sc)
+
+    val currencyConverterBr = sc.broadcast(CurrencyConverter)
 
     val toCurrencies = sc.parallelize(Array("EUR", "USD"), 2)
     val rates = toCurrencies.map(

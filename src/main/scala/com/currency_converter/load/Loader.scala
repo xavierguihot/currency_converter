@@ -137,7 +137,8 @@ private[currency_converter] object Loader extends Serializable {
     require(folder.exists, s"folder $currencyFolder doesn't exist")
     require(
       folder.isDirectory,
-      s"folder $currencyFolder is a file; expecting a folder")
+      s"folder $currencyFolder is a file; expecting a folder"
+    )
 
     val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
