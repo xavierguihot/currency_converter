@@ -5,7 +5,7 @@
 ## Overview
 
 
-API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter)
+API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter$)
 
 Scala Wrapper around your exchange rate data for currency conversion.
 
