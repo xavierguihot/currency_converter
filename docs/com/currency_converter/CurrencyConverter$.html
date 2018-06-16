@@ -16,7 +16,7 @@
       <script type="text/javascript">
          if(top === self) {
             var url = '../../index.html';
-            var hash = 'com.currency_converter.CurrencyConverter';
+            var hash = 'com.currency_converter.CurrencyConverter$';
             var anchor = window.location.hash;
             var anchor_opt = '';
             if (anchor.length >= 1)
@@ -26,14 +26,14 @@
    	  </script>
     
         </head>
-        <body class="type">
+        <body class="value">
       <div id="definition">
-        <img alt="Class" src="../../lib/class_big.png" />
+        <img alt="Object" src="../../lib/object_big.png" />
         <p id="owner"><a href="../package.html" class="extype" name="com">com</a>.<a href="package.html" class="extype" name="com.currency_converter">currency_converter</a></p>
         <h1>CurrencyConverter</h1><h3><span class="morelinks"><div>Related Doc:
             <a href="package.html" class="extype" name="com.currency_converter">package currency_converter</a>
           </div></span></h3><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -42,7 +42,7 @@
       <h4 id="signature" class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
-        <span class="kind">class</span>
+        <span class="kind">object</span>
       </span>
       <span class="symbol">
         <span class="name">CurrencyConverter</span><span class="result"> extends <span class="extype" name="scala.Serializable">Serializable</span></span>
@@ -52,42 +52,46 @@
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>A <b>Currency Converter</b>.</p><p>A Scala Wrapper around your exchange rate data for currency conversion.</p><p>Based on <b>your exchange rate files</b> stored either on a classic <b>file
 system</b> or on <b>HDFS</b> (Hadoop), this CurrencyConverter object provides
 for both classic and Spark jobs methods to <b>convert prices</b> and
-<b>retrieve exchange rates</b>.</p><p>* Usually, one will use the CurrencyConverter this way:</p><pre><span class="kw">import</span> com.currency_converter.CurrencyConverter
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/path/to/folder/of/rate/files"</span>)
-<span class="cmt">// Or when data is stored on Hadoop:</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-  <span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext)
-<span class="cmt">// And then, to get the exchange rate and the converted price from EUR to</span>
-<span class="cmt">// SEK for the date 20170201:</span>
-currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)
-currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)</pre><p>* It's often the case that one doesn't need to have the exact exchange rate
+<b>retrieve exchange rates</b>.</p><p>* Here is a basic usage of the CurrencyConverter:</p><pre><span class="kw">import</span> com.currency_converter.CurrencyConverter
+
+CurrencyConverter.load(<span class="lit">"/path/to/folder/of/rate/files"</span>)
+<span class="cmt">// Or to load data from Hadoop:</span>
+CurrencyConverter.loadFromSpark(<span class="lit">"/path/to/folder/of/rate/files"</span>, sc)
+
+<span class="cmt">// And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:</span>
+CurrencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) <span class="cmt">// Success(9.4446d)</span>
+CurrencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) <span class="cmt">// Success(13.4151)</span></pre><p>* It's often the case that one doesn't need to have the exact exchange rate
 of the requested date if the rate isn't available for this date. In this
-case, one case use the fallback option in order to fallback on the rate of
-previous dates when it's not available for the given date:</p><pre><span class="cmt">// if:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.93</span>d))
-<span class="cmt">// then:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">0.93</span>d))
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">1.59</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
-be csv formated this way:</p><p>  yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
-parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
-<span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
-<span class="kw">val</span> customRateLineParser = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
+case, one case use the fallback option in order to recursively fallback on
+the rate of previous dates when it's not available for the given date:</p><pre><span class="cmt">// if there are no rates available for 20170228 and 20170227 but there is one</span>
+<span class="cmt">// for 20170226 which is 0.93d then:</span>
+CurrencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) <span class="cmt">// Success(0.93d)</span>
+CurrencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) <span class="cmt">// Success(1.59d)</span></pre><p>* To load exchange rate data, this tool expects your exchange rate data to
+be csv formatted this way:</p><pre><span class="lit">"yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate"</span> <span class="cmt">// for instance: "20170327,USD,EUR,0.89"</span></pre><p>But if it's not the case, one can provide a custom exchange rate line parser
+this way:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
 
-  <span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span> <span class="kw">for</span> {
-    exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
-    yyyyMMddDate <span class="kw">&lt;-</span> Try(DateTimeFormat
-      .forPattern(<span class="lit">"yyyyMMdd"</span>)
-      .print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))).toOption
-  } <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+<span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178,</span>
+<span class="cmt">// you could use this kind of parser:</span>
+<span class="kw">def</span> customRateLineParser =
+(rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
 
-  <span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
-}</pre><p>* Finally, you can request a specific range of dates for the rates to load.
-Indeed, the default dates to load are 20140101 to today. This might be
-either too restrictive or you might want to load less data due to very
-limited available memory.</p><p>* With Spark, don't forget that you can broadcast the CurrencyConverter
-object.</p><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
+<span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, _, toCurrency, _, _, exchangeRate, _) <span class="kw">=&gt;</span> <span class="kw">for</span> {
+exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
+yyyyMMddDate <span class="kw">&lt;-</span> Try(
+        DateTimeFormat.forPattern(<span class="lit">"yyyyMMdd"</span>)
+.print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))
+).toOption
+} <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+
+<span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
+}
+
+CurrencyConverter.setLineParser(customRateLineParser)</pre><p>* Finally, you can specify what range of rate dates to load. Indeed, the
+default dates to load are 20140101 to today. This might be either too
+restrictive or you might want to load less data due to very limited
+available memory:</p><pre>CurrencyConverter.setFirstDate(<span class="lit">"20170201"</span>)
+CurrencyConverter.setLastDate(<span class="lit">"20170228"</span>)</pre><p>* With Spark, don't forget that you can broadcast the CurrencyConverter
+object:</p><pre>sc.broadcast(CurrencyConverter)</pre><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
 master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
 CurrencyConverter</a>
 </p></div><dl class="attributes block"> <dt>Since</dt><dd><p>2017-02</p></dd></dl><div class="toggleContainer block">
@@ -127,196 +131,7 @@ CurrencyConverter</a>
 
       <div id="template">
         <div id="allMembers">
-        <div id="constructors" class="members">
-              <h3>Instance Constructors</h3>
-              <ol><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, with a specific range
-of dates and for data stored under a different format than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, with a specific range
-of dates and for data stored under a different format than the specified one.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
- of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates of
-exchange rates to load (expected format is yyyyMMdd - for instance
-20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170415).</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange rates.
-If you have the possibility to provide data under the default format, then
-forget this parameter.</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, for data stored under
-a different format than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, for data stored under
-a different format than the specified one.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange rates.
-If you have the possibility to provide data under the default format, then
-forget this parameter.</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS, with a specific range
-of dates.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS, with a specific range
-of dates.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates of
-exchange rates to load (expected format is yyyyMMdd - for instance
-20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170415).</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sparkContext">sparkContext: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,sparkContext:org.apache.spark.SparkContext):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored on HDFS.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored on HDFS.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">sparkContext</dt><dd class="cmt"><p>the SparkContext</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter, with a specific range of dates and for data
-stored under a different format than the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter, with a specific range of dates and for data
-stored under a different format than the specified one.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170415).</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange rates.
-If you have the possibility to provide data under the default format, then
-forget this parameter.</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter for data stored under a different format than
-the specified one.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter for data stored under a different format than
-the specified one.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">rateLineParser</dt><dd class="cmt"><p>the custom function used to parse raw exchange rates.
-If you have the possibility to provide data under the default format, then
-forget this parameter.</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="firstDateOfRates">firstDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="lastDateOfRates">lastDateOfRates: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String,firstDateOfRates:String,lastDateOfRates:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter with a specific range of dates.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter with a specific range of dates.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd><dt class="param">firstDateOfRates</dt><dd class="cmt"><p>the first (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170327).</p></dd><dt class="param">lastDateOfRates</dt><dd class="cmt"><p>the last date (included) date of the range of dates
-of exchange rates to load (expected format is yyyyMMdd - for instance
-20170415).</p></dd></dl></div>
-    </li><li name="com.currency_converter.CurrencyConverter#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(currencyFolder:String):com.currency_converter.CurrencyConverter"></a>
-      <a id="&lt;init&gt;:CurrencyConverter"></a>
-      <h4 class="signature">
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">new</span>
-      </span>
-      <span class="symbol">
-        <span class="name">CurrencyConverter</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>)</span>
-      </span>
-      </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@&lt;init&gt;(currencyFolder:String):com.currency_converter.CurrencyConverter" title="Permalink" target="_top">
-        <img src="../../lib/permalink.png" alt="Permalink" />
-      </a>
-    </span>
-      <p class="shortcomment cmt">Creates a CurrencyConverter.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a CurrencyConverter.
-</p></div><dl class="paramcmts block"><dt class="param">currencyFolder</dt><dd class="cmt"><p>the path to the hdfs folder which contains the files
-of exchange rates.</p></dd></dl></div>
-    </li></ol>
-            </div>
+        
 
         
 
@@ -336,7 +151,7 @@ of exchange rates.</p></dd></dl></div>
         <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.Any">Any</span></span>)</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@!=(x$1:Any):Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@!=(x$1:Any):Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -353,7 +168,7 @@ of exchange rates.</p></dd></dl></div>
         <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Int">Int</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@##():Int" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@##():Int" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -370,7 +185,7 @@ of exchange rates.</p></dd></dl></div>
         <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.Any">Any</span></span>)</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@==(x$1:Any):Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@==(x$1:Any):Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -387,7 +202,7 @@ of exchange rates.</p></dd></dl></div>
         <span class="name">allDatesHaveRates</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@allDatesHaveRates():Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@allDatesHaveRates():Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -410,7 +225,7 @@ actions if one date has no rates.
         <span class="name">asInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Any.asInstanceOf.T0">T0</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@asInstanceOf[T0]:T0" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@asInstanceOf[T0]:T0" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -427,7 +242,7 @@ actions if one date has no rates.
         <span class="name">clone</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.AnyRef">AnyRef</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@clone():Object" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@clone():Object" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -450,7 +265,7 @@ actions if one date has no rates.
         <span class="name">convert</span><span class="params">(<span name="price">price: <span class="extype" name="scala.Double">Double</span></span>, <span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>, <span name="fallback">fallback: <span class="extype" name="scala.Boolean">Boolean</span> = <span class="symbol">false</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@convert(price:Double,fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -486,7 +301,7 @@ date.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency
         <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.AnyRef">AnyRef</span></span>)</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -503,7 +318,7 @@ date.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency
         <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.Any">Any</span></span>)</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@equals(x$1:Any):Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@equals(x$1:Any):Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -520,7 +335,7 @@ date.</p></dd><dt>returns</dt><dd class="cmt"><p>the price converted in currency
         <span class="name">exchangeRate</span><span class="params">(<span name="fromCurrency">fromCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="toCurrency">toCurrency: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="forDate">forDate: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="format">format: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;yyyyMMdd&quot;</span></span>, <span name="fallback">fallback: <span class="extype" name="scala.Boolean">Boolean</span> = <span class="symbol">false</span></span>)</span><span class="result">: <span class="extype" name="scala.util.Try">Try</span>[<span class="extype" name="scala.Double">Double</span>]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@exchangeRate(fromCurrency:String,toCurrency:String,forDate:String,format:String,fallback:Boolean):scala.util.Try[Double]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -554,7 +369,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">finalize</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@finalize():Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@finalize():Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -577,7 +392,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">getClass</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.Class">Class</span>[_]</span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@getClass():Class[_]" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@getClass():Class[_]" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -594,7 +409,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">hashCode</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Int">Int</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@hashCode():Int" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@hashCode():Int" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -611,11 +426,49 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#load" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="load(currencyFolder:String):Unit"></a>
+      <a id="load(String):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">load</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@load(currencyFolder:String):Unit" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Loads data from a local file system.</p><div class="fullcomment"><div class="comment cmt"><p>Loads data from a local file system.</p><p>This is required before starting calling the convert and getExchangeRate
+functions.
+</p></div></div>
+    </li><li name="com.currency_converter.CurrencyConverter#loadFromSpark" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="loadFromSpark(currencyFolder:String,sc:org.apache.spark.SparkContext):Unit"></a>
+      <a id="loadFromSpark(String,SparkContext):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">loadFromSpark</span><span class="params">(<span name="currencyFolder">currencyFolder: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="sc">sc: <span class="extype" name="org.apache.spark.SparkContext">SparkContext</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@loadFromSpark(currencyFolder:String,sc:org.apache.spark.SparkContext):Unit" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Loads data from Hadoop.</p><div class="fullcomment"><div class="comment cmt"><p>Loads data from Hadoop.</p><p>This is required before starting calling the convert and getExchangeRate
+functions.
+</p></div></div>
     </li><li name="scala.AnyRef#ne" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="ne(x$1:AnyRef):Boolean"></a>
       <a id="ne(AnyRef):Boolean"></a>
@@ -628,7 +481,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.AnyRef">AnyRef</span></span>)</span><span class="result">: <span class="extype" name="scala.Boolean">Boolean</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -645,7 +498,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">notify</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@notify():Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@notify():Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -662,11 +515,73 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@notifyAll():Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@notifyAll():Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="com.currency_converter.CurrencyConverter#setFirstDate" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="setFirstDate(firstDate:String):Unit"></a>
+      <a id="setFirstDate(String):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">setFirstDate</span><span class="params">(<span name="firstDate">firstDate: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@setFirstDate(firstDate:String):Unit" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Sets the first (included) date of the range of dates of exchange rates to
+load (expected format is yyyyMMdd - for instance 20170327).</p>
+    </li><li name="com.currency_converter.CurrencyConverter#setLastDate" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="setLastDate(lastDate:String):Unit"></a>
+      <a id="setLastDate(String):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">setLastDate</span><span class="params">(<span name="lastDate">lastDate: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@setLastDate(lastDate:String):Unit" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Sets the last date (included) date of the range of dates of exchange rates
+to load (expected format is yyyyMMdd - for instance 20170415).</p>
+    </li><li name="com.currency_converter.CurrencyConverter#setLineParser" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="setLineParser(rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):Unit"></a>
+      <a id="setLineParser((String)⇒Option[ExchangeRate]):Unit"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">setLineParser</span><span class="params">(<span name="rateLineParser">rateLineParser: (<span class="extype" name="scala.Predef.String">String</span>) ⇒ <span class="extype" name="scala.Option">Option</span>[<a href="model/ExchangeRate.html" class="extype" name="com.currency_converter.model.ExchangeRate">ExchangeRate</a>]</span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@setLineParser(rateLineParser:String=&gt;Option[com.currency_converter.model.ExchangeRate]):Unit" title="Permalink" target="_top">
+        <img src="../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Sets the custom function used to parse raw exchange rates.</p><div class="fullcomment"><div class="comment cmt"><p>Sets the custom function used to parse raw exchange rates. If you have the
+possibility to provide data under the default format, then forget this
+parameter.</p><p>The default format is 20170327,USD,EUR,0.89 and its associated parser is:</p><pre><span class="kw">def</span> defaultRateLineParser(rawRateLine: <span class="std">String</span>): <span class="std">Option</span>[ExchangeRate] =
+  rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
+    <span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span>
+      Try(
+        ExchangeRate(date, fromCurrency, toCurrency, exchangeRate.toDouble)
+      ).toOption
+    <span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
+  }</pre></div></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a>
       <a id="synchronized[T0](⇒T0):T0"></a>
@@ -679,7 +594,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">synchronized</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="params">(<span name="arg0">arg0: ⇒ <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>)</span><span class="result">: <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -696,7 +611,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">toString</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.String">String</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@toString():String" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@toString():String" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -713,7 +628,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">wait</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@wait():Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@wait():Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -736,7 +651,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.Long">Long</span></span>, <span name="arg1">arg1: <span class="extype" name="scala.Int">Int</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
@@ -759,7 +674,7 @@ the past if the rate is not available for the requested date.</p></dd><dt>return
         <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <span class="extype" name="scala.Long">Long</span></span>)</span><span class="result">: <span class="extype" name="scala.Unit">Unit</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.CurrencyConverter@wait(x$1:Long):Unit" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.CurrencyConverter$@wait(x$1:Long):Unit" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>

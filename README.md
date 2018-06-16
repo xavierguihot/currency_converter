@@ -28,8 +28,9 @@ Compatible with Spark 2.
 import com.currency_converter.CurrencyConverter
 
 CurrencyConverter.load("/path/to/folder/of/rate/files")
-// Or when data is stored on Hadoop:
+// Or to load data from Hadoop:
 CurrencyConverter.loadFromSpark("/path/to/folder/of/rate/files", sc)
+
 // And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:
 CurrencyConverter.exchangeRate("EUR", "SEK", "20170201") // Success(9.4446d)
 CurrencyConverter.convert(12.5d, "EUR", "USD", "20170201") // Success(13.4151)
@@ -50,13 +51,16 @@ CurrencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) // Succ
 To load exchange rate data, this tool expects your exchange rate data to be csv
 formatted this way:
 
-	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate // for instance: "20170327,USD,EUR,0.89"
+```scala
+"yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate" // for instance: "20170327,USD,EUR,0.89"
+```
 
 But if it's not the case, one can provide a custom exchange rate line parser
 this way:
 
 ```scala
 import com.currency_converter.model.ExchangeRate
+
 // For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178,
 // you could use this kind of parser:
 def customRateLineParser =
@@ -72,12 +76,13 @@ def customRateLineParser =
 
     case _ => None
   }
+
+CurrencyConverter.setLineParser(customRateLineParser)
 ```
 
-Finally, you can request a specific range of dates to specify the rates to load.
-Indeed, the default dates to load are 20140101 to today. This might be either
-too restrictive or you might want to load less data due to very limited
-available memory:
+Finally, you can specify what range of rate dates to load. Indeed, the default
+dates to load are 20140101 to today. This might be either too restrictive or you
+might want to load less data due to very limited available memory:
 
 ```scala
 CurrencyConverter.setFirstDate("20170201")

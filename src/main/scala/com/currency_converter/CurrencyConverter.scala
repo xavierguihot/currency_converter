@@ -20,66 +20,78 @@ import scala.util.{Try, Success, Failure}
   * for both classic and Spark jobs methods to '''convert prices''' and
   * '''retrieve exchange rates'''.
   *
-  * * Usually, one will use the CurrencyConverter this way:
+  * * Here is a basic usage of the CurrencyConverter:
   *
   * {{{
   * import com.currency_converter.CurrencyConverter
-  * val currencyConverter = new CurrencyConverter("/path/to/folder/of/rate/files")
-  * // Or when data is stored on Hadoop:
-  * val currencyConverter = new CurrencyConverter(
-  *   "/hdfs/path/to/folder/of/rate/files", sparkContext)
-  * // And then, to get the exchange rate and the converted price from EUR to
-  * // SEK for the date 20170201:
-  * currencyConverter.exchangeRate("EUR", "SEK", "20170201")
-  * currencyConverter.convert(12.5d, "EUR", "USD", "20170201")
+  *
+  * CurrencyConverter.load("/path/to/folder/of/rate/files")
+  * // Or to load data from Hadoop:
+  * CurrencyConverter.loadFromSpark("/path/to/folder/of/rate/files", sc)
+  *
+  * // And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:
+  * CurrencyConverter.exchangeRate("EUR", "SEK", "20170201") // Success(9.4446d)
+  * CurrencyConverter.convert(12.5d, "EUR", "USD", "20170201") // Success(13.4151)
   * }}}
   *
   * * It's often the case that one doesn't need to have the exact exchange rate
   * of the requested date if the rate isn't available for this date. In this
-  * case, one case use the fallback option in order to fallback on the rate of
-  * previous dates when it's not available for the given date:
+  * case, one case use the fallback option in order to recursively fallback on
+  * the rate of previous dates when it's not available for the given date:
   *
   * {{{
-  * // if:
-  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
-  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
-  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170226") == Success(0.93d))
-  * // then:
-  * assert(currencyConverter.exchangeRate("USD", "GBP", "20170228", fallback = true) == Success(0.93d))
-  * assert(currencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) == Success(1.59d))
+  * // if there are no rates available for 20170228 and 20170227 but there is one
+  * // for 20170226 which is 0.93d then:
+  * CurrencyConverter.exchangeRate("USD", "GBP", "20170228", fallback = true) // Success(0.93d)
+  * CurrencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) // Success(1.59d)
   * }}}
   *
   * * To load exchange rate data, this tool expects your exchange rate data to
   * be csv formatted this way:
   *
-  *   yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)
+  * {{{
+  * "yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate" // for instance: "20170327,USD,EUR,0.89"
+  * }}}
   *
-  * But if it's not the case, you can provide a custom exchange rate line
-  * parser, such as:
+  * But if it's not the case, one can provide a custom exchange rate line parser
+  * this way:
   *
   * {{{
   * import com.currency_converter.model.ExchangeRate
-  * // For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:
-  * val customRateLineParser = (rawRateLine: String) => rawRateLine.split("\\,", -1) match {
   *
-  *   case Array(date, fromCurrency, toCurrency, exchangeRate) => for {
-  *     exchangeRate <- Try(exchangeRate.toDouble).toOption
-  *     yyyyMMddDate <- Try(DateTimeFormat
-  *       .forPattern("yyyyMMdd")
-  *       .print(DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(date))).toOption
-  *   } yield ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+  * // For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178,
+  * // you could use this kind of parser:
+  * def customRateLineParser =
+  * (rawRateLine: String) => rawRateLine.split("\\,", -1) match {
   *
-  *   case _ => None
+  * case Array(date, fromCurrency, _, toCurrency, _, _, exchangeRate, _) => for {
+  * exchangeRate <- Try(exchangeRate.toDouble).toOption
+  * yyyyMMddDate <- Try(
+  *         DateTimeFormat.forPattern("yyyyMMdd")
+  * .print(DateTimeFormat.forPattern("yyyy-MM-dd").parseDateTime(date))
+  * ).toOption
+  * } yield ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+  *
+  * case _ => None
   * }
+  *
+  * CurrencyConverter.setLineParser(customRateLineParser)
   * }}}
   *
-  * * Finally, you can request a specific range of dates for the rates to load.
-  * Indeed, the default dates to load are 20140101 to today. This might be
-  * either too restrictive or you might want to load less data due to very
-  * limited available memory.
+  * * Finally, you can specify what range of rate dates to load. Indeed, the
+  * default dates to load are 20140101 to today. This might be either too
+  * restrictive or you might want to load less data due to very limited
+  * available memory:
+  *
+  * {{{
+  * CurrencyConverter.setFirstDate("20170201")
+  * CurrencyConverter.setLastDate("20170228")
+  * }}}
   *
   * * With Spark, don't forget that you can broadcast the CurrencyConverter
-  * object.
+  * object:
+  *
+  * {{{ sc.broadcast(CurrencyConverter) }}}
   *
   * Source <a href="https://github.com/xavierguihot/currency_converter/blob/
   * master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
@@ -97,6 +109,11 @@ object CurrencyConverter extends Serializable {
 
   private var toUsdRates: Map[String, Map[String, Double]] = Map()
 
+  /** Loads data from Hadoop.
+    *
+    * This is required before starting calling the convert and getExchangeRate
+    * functions.
+    * */
   def loadFromSpark(currencyFolder: String, sc: SparkContext): Unit =
     toUsdRates = Loader.loadExchangeRates(
       currencyFolder,
@@ -106,6 +123,11 @@ object CurrencyConverter extends Serializable {
       lineParser
     )
 
+  /** Loads data from a local file system.
+    *
+    * This is required before starting calling the convert and getExchangeRate
+    * functions.
+    * */
   def load(currencyFolder: String): Unit =
     toUsdRates = Loader.loadExchangeRates(
       currencyFolder,
@@ -115,10 +137,33 @@ object CurrencyConverter extends Serializable {
       lineParser
     )
 
+  /** Sets the first (included) date of the range of dates of exchange rates to
+    * load (expected format is yyyyMMdd - for instance 20170327).
+    * */
   def setFirstDate(firstDate: String): Unit = firstDateOfRates = firstDate
 
+  /** Sets the last date (included) date of the range of dates of exchange rates
+    * to load (expected format is yyyyMMdd - for instance 20170415).
+    * */
   def setLastDate(lastDate: String): Unit = lastDateOfRates = lastDate
 
+  /** Sets the custom function used to parse raw exchange rates. If you have the
+    * possibility to provide data under the default format, then forget this
+    * parameter.
+    *
+    * The default format is 20170327,USD,EUR,0.89 and its associated parser is:
+    *
+    * {{{
+    * def defaultRateLineParser(rawRateLine: String): Option[ExchangeRate] =
+    *   rawRateLine.split("\\,", -1) match {
+    *     case Array(date, fromCurrency, toCurrency, exchangeRate) =>
+    *       Try(
+    *         ExchangeRate(date, fromCurrency, toCurrency, exchangeRate.toDouble)
+    *       ).toOption
+    *     case _ => None
+    *   }
+    * }}}
+    * */
   def setLineParser(rateLineParser: String => Option[ExchangeRate]): Unit =
     lineParser = rateLineParser
 

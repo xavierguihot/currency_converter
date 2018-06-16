@@ -64,74 +64,75 @@
         <div id="allMembers">
         
 
-        <div id="types" class="types members">
-              <h3>Type Members</h3>
+        
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
               <ol><li name="com.currency_converter.CurrencyConverter" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="CurrencyConverterextendsSerializable"></a>
+      <a id="CurrencyConverter"></a>
       <a id="CurrencyConverter:CurrencyConverter"></a>
       <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
-        <span class="kind">class</span>
+        <span class="kind">object</span>
       </span>
       <span class="symbol">
-        <a href="CurrencyConverter.html"><span class="name">CurrencyConverter</span></a><span class="result"> extends <span class="extype" name="scala.Serializable">Serializable</span></span>
+        <a href="CurrencyConverter$.html"><span class="name">CurrencyConverter</span></a><span class="result"> extends <span class="extype" name="scala.Serializable">Serializable</span></span>
       </span>
       </h4><span class="permalink">
-      <a href="../../index.html#com.currency_converter.package@CurrencyConverterextendsSerializable" title="Permalink" target="_top">
+      <a href="../../index.html#com.currency_converter.package@CurrencyConverter" title="Permalink" target="_top">
         <img src="../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
       <p class="shortcomment cmt">A <b>Currency Converter</b>.</p><div class="fullcomment"><div class="comment cmt"><p>A <b>Currency Converter</b>.</p><p>A Scala Wrapper around your exchange rate data for currency conversion.</p><p>Based on <b>your exchange rate files</b> stored either on a classic <b>file
 system</b> or on <b>HDFS</b> (Hadoop), this CurrencyConverter object provides
 for both classic and Spark jobs methods to <b>convert prices</b> and
-<b>retrieve exchange rates</b>.</p><p>* Usually, one will use the CurrencyConverter this way:</p><pre><span class="kw">import</span> com.currency_converter.CurrencyConverter
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(<span class="lit">"/path/to/folder/of/rate/files"</span>)
-<span class="cmt">// Or when data is stored on Hadoop:</span>
-<span class="kw">val</span> currencyConverter = <span class="kw">new</span> CurrencyConverter(
-  <span class="lit">"/hdfs/path/to/folder/of/rate/files"</span>, sparkContext)
-<span class="cmt">// And then, to get the exchange rate and the converted price from EUR to</span>
-<span class="cmt">// SEK for the date 20170201:</span>
-currencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>)
-currencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>)</pre><p>* It's often the case that one doesn't need to have the exact exchange rate
+<b>retrieve exchange rates</b>.</p><p>* Here is a basic usage of the CurrencyConverter:</p><pre><span class="kw">import</span> com.currency_converter.CurrencyConverter
+
+CurrencyConverter.load(<span class="lit">"/path/to/folder/of/rate/files"</span>)
+<span class="cmt">// Or to load data from Hadoop:</span>
+CurrencyConverter.loadFromSpark(<span class="lit">"/path/to/folder/of/rate/files"</span>, sc)
+
+<span class="cmt">// And then, to get the exchange rate and the converted price from EUR to SEK for the date 20170201:</span>
+CurrencyConverter.exchangeRate(<span class="lit">"EUR"</span>, <span class="lit">"SEK"</span>, <span class="lit">"20170201"</span>) <span class="cmt">// Success(9.4446d)</span>
+CurrencyConverter.convert(<span class="num">12.5</span>d, <span class="lit">"EUR"</span>, <span class="lit">"USD"</span>, <span class="lit">"20170201"</span>) <span class="cmt">// Success(13.4151)</span></pre><p>* It's often the case that one doesn't need to have the exact exchange rate
 of the requested date if the rate isn't available for this date. In this
-case, one case use the fallback option in order to fallback on the rate of
-previous dates when it's not available for the given date:</p><pre><span class="cmt">// if:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170227"</span>).isFailure)
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170226"</span>) == Success(<span class="num">0.93</span>d))
-<span class="cmt">// then:</span>
-assert(currencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">0.93</span>d))
-assert(currencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) == Success(<span class="num">1.59</span>d))</pre><p>* To load exchange rate data, this tool expects your exchange rate data to
-be csv formated this way:</p><p>  yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)</p><p>But if it's not the case, you can provide a custom exchange rate line
-parser, such as:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
-<span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178:</span>
-<span class="kw">val</span> customRateLineParser = (rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
+case, one case use the fallback option in order to recursively fallback on
+the rate of previous dates when it's not available for the given date:</p><pre><span class="cmt">// if there are no rates available for 20170228 and 20170227 but there is one</span>
+<span class="cmt">// for 20170226 which is 0.93d then:</span>
+CurrencyConverter.exchangeRate(<span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) <span class="cmt">// Success(0.93d)</span>
+CurrencyConverter.convert(<span class="num">2</span>d, <span class="lit">"USD"</span>, <span class="lit">"GBP"</span>, <span class="lit">"20170228"</span>, fallback = <span class="kw">true</span>) <span class="cmt">// Success(1.59d)</span></pre><p>* To load exchange rate data, this tool expects your exchange rate data to
+be csv formatted this way:</p><pre><span class="lit">"yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate"</span> <span class="cmt">// for instance: "20170327,USD,EUR,0.89"</span></pre><p>But if it's not the case, one can provide a custom exchange rate line parser
+this way:</p><pre><span class="kw">import</span> com.currency_converter.model.ExchangeRate
 
-  <span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, toCurrency, exchangeRate) <span class="kw">=&gt;</span> <span class="kw">for</span> {
-    exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
-    yyyyMMddDate <span class="kw">&lt;-</span> Try(DateTimeFormat
-      .forPattern(<span class="lit">"yyyyMMdd"</span>)
-      .print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))).toOption
-  } <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+<span class="cmt">// For instance, for a custom format such as: 2017-02-01,USD,,EUR,,,0.93178,</span>
+<span class="cmt">// you could use this kind of parser:</span>
+<span class="kw">def</span> customRateLineParser =
+(rawRateLine: <span class="std">String</span>) <span class="kw">=&gt;</span> rawRateLine.split(<span class="lit">"\\,"</span>, -<span class="num">1</span>) <span class="kw">match</span> {
 
-  <span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
-}</pre><p>* Finally, you can request a specific range of dates for the rates to load.
-Indeed, the default dates to load are 20140101 to today. This might be
-either too restrictive or you might want to load less data due to very
-limited available memory.</p><p>* With Spark, don't forget that you can broadcast the CurrencyConverter
-object.</p><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
+<span class="kw">case</span> <span class="std">Array</span>(date, fromCurrency, _, toCurrency, _, _, exchangeRate, _) <span class="kw">=&gt;</span> <span class="kw">for</span> {
+exchangeRate <span class="kw">&lt;-</span> Try(exchangeRate.toDouble).toOption
+yyyyMMddDate <span class="kw">&lt;-</span> Try(
+        DateTimeFormat.forPattern(<span class="lit">"yyyyMMdd"</span>)
+.print(DateTimeFormat.forPattern(<span class="lit">"yyyy-MM-dd"</span>).parseDateTime(date))
+).toOption
+} <span class="kw">yield</span> ExchangeRate(yyyyMMddDate, fromCurrency, toCurrency, exchangeRate)
+
+<span class="kw">case</span> _ <span class="kw">=&gt;</span> <span class="std">None</span>
+}
+
+CurrencyConverter.setLineParser(customRateLineParser)</pre><p>* Finally, you can specify what range of rate dates to load. Indeed, the
+default dates to load are 20140101 to today. This might be either too
+restrictive or you might want to load less data due to very limited
+available memory:</p><pre>CurrencyConverter.setFirstDate(<span class="lit">"20170201"</span>)
+CurrencyConverter.setLastDate(<span class="lit">"20170228"</span>)</pre><p>* With Spark, don't forget that you can broadcast the CurrencyConverter
+object:</p><pre>sc.broadcast(CurrencyConverter)</pre><p>Source <a href="https://github.com/xavierguihot/currency_converter/blob/
 master/src/main/scala/com/currency_converter/CurrencyConverter.scala">
 CurrencyConverter</a>
 </p></div><dl class="attributes block"> <dt>Since</dt><dd><p>2017-02</p></dd></dl></div>
-    </li></ol>
-            </div>
-
-        
-
-        <div id="values" class="values members">
-              <h3>Value Members</h3>
-              <ol><li name="com.currency_converter.error" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+    </li><li name="com.currency_converter.error" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="error"></a>
       <a id="error:error"></a>
       <h4 class="signature">
