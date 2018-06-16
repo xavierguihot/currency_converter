@@ -5,8 +5,6 @@
 ## Overview
 
 
-Version: 2.0.0
-
 API Scaladoc: [CurrencyConverter](http://xavierguihot.com/currency_converter/#com.currency_converter.CurrencyConverter)
 
 Scala Wrapper around your exchange rate data for currency conversion.
@@ -98,7 +96,7 @@ With sbt:
 ```scala
 resolvers += "jitpack" at "https://jitpack.io"
 
-libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "v2.0.0"
+libraryDependencies += "com.github.xavierguihot" % "currency_converter" % "3.0.0"
 ```
 
 With maven:
@@ -114,7 +112,7 @@ With maven:
 <dependency>
 	<groupId>com.github.xavierguihot</groupId>
 	<artifactId>currency_converter</artifactId>
-	<version>v2.0.0</version>
+	<version>3.0.0</version>
 </dependency>
 ```
 
@@ -128,6 +126,9 @@ allprojects {
 }
 
 dependencies {
-	compile 'com.github.xavierguihot:currency_converter:v2.0.0'
+	compile 'com.github.xavierguihot:currency_converter:3.0.0'
 }
 ```
+
+For versions anterior to `3.0.0`, use prefix `v` in the version tag; for
+instance `v2.0.0` 
