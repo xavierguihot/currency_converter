@@ -101,15 +101,13 @@ private[currency_converter] object Loader extends Serializable {
             (fromCurr == "USD" || toCurr == "USD")
       }
       .groupBy(_.date)
-      .map {
-        case (date, usdRates) =>
-          // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
-          val toUsdRates = usdRates.map {
+      .mapValues(
+        usdRates =>
+          usdRates.map {
             case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
             case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
-          (date, toUsdRates)
-      }
+      )
       .collect()
       .toMap
   }
@@ -139,27 +137,27 @@ private[currency_converter] object Loader extends Serializable {
 
     val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
-    currencyFiles.flatMap { currencyFile =>
-      // Let's parse from each file of rate (usually one file per date)
-      // the different rates:
-      Source
-        .fromFile(currencyFile, "UTF-8")
-        .getLines
-        .flatMap(parseRateLine(_))
-        .filter {
-          case ExchangeRate(date, fromCurr, toCurr, _) =>
-            date >= firstDateOfRates && date <= lastDateOfRates &&
-              (fromCurr == "USD" || toCurr == "USD")
-        }
-    }.groupBy(_.date)
-      .map {
-        case (date, usdRates) =>
-          // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
-          val toUsdRates = usdRates.map {
+    currencyFiles
+      .flatMap(
+        currencyFile =>
+          // Let's parse from each file of rate (usually one file per date)
+          // the different rates:
+          Source
+            .fromFile(currencyFile, "UTF-8")
+            .getLines
+            .flatMap(parseRateLine(_))
+            .filter {
+              case ExchangeRate(date, fromCurr, toCurr, _) =>
+                date >= firstDateOfRates && date <= lastDateOfRates &&
+                  (fromCurr == "USD" || toCurr == "USD")
+          })
+      .groupBy(_.date)
+      .mapValues(
+        usdRates =>
+          usdRates.map {
             case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
             case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
-          (date, toUsdRates)
-      }
+      )
   }
 }

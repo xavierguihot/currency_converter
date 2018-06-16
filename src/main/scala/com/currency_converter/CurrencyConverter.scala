@@ -104,7 +104,8 @@ class CurrencyConverter private (
       sparkContext,
       firstDateOfRates,
       lastDateOfRates,
-      rateLineParser)
+      rateLineParser
+    )
 
   /** Converts a price from currency XXX to YYY.
     *
@@ -211,9 +212,8 @@ class CurrencyConverter private (
     // rate from this currency to usd (indeed rates are stored as currency->usd,
     // so this means in this case that we would apply currency->usd then
     // usd->currency, which would throw an exception):
-    if (fromCurrency == toCurrency) {
+    if (fromCurrency == toCurrency)
       Success(1d)
-    }
     else {
 
       val date = CurrencyConverter.yyyyMMddDate(forDate, format)
@@ -223,20 +223,12 @@ class CurrencyConverter private (
         targetCurrencyToUsdRate <- getToUsdRate(toCurrency, date)
       } yield sourceCurrencyToUsdRate * (1d / targetCurrencyToUsdRate)
 
-      rate match {
-
-        case Success(r) => Success(r)
-
-        case Failure(exception) =>
-          if (!fallback)
-            Failure(exception)
-          else {
-
+      if (fallback)
+        rate.recoverWith {
+          case _ =>
             val formatter = DateTimeFormat.forPattern("yyyyMMdd")
-
             val dayBefore =
               formatter.print(formatter.parseDateTime(date).minusDays(1))
-
             if (dayBefore >= firstDateOfRates)
               exchangeRate(fromCurrency, toCurrency, dayBefore, fallback = true)
             else
@@ -245,8 +237,9 @@ class CurrencyConverter private (
                   "No exchange rate between currencies \"" + fromCurrency +
                     "\" and \"" + toCurrency + "\" could be found even after " +
                     "fallback on previous dates."))
-          }
-      }
+        }
+      else
+        rate
     }
   }
 
@@ -377,7 +370,8 @@ class CurrencyConverter private (
       None,
       firstDateOfRates,
       lastDateOfRates,
-      rateLineParser)
+      rateLineParser
+    )
   }
 
   /** Creates a CurrencyConverter for data stored on HDFS.
@@ -458,7 +452,8 @@ class CurrencyConverter private (
       Some(sparkContext),
       firstDateOfRates,
       lastDateOfRates,
-      rateLineParser)
+      rateLineParser
+    )
   }
 }
 
