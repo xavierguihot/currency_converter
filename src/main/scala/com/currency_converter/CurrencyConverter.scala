@@ -88,24 +88,39 @@ import scala.util.{Try, Success, Failure}
   * @author Xavier Guihot
   * @since 2017-02
   */
-class CurrencyConverter private (
-    currencyFolder: String,
-    sparkContext: Option[SparkContext] = None,
-    firstDateOfRates: String = "20140101",
-    lastDateOfRates: String = CurrencyConverter.today,
-    rateLineParser: String => Option[ExchangeRate] =
-      ExchangeRate.defaultRateLineParser
-) extends Serializable {
+object CurrencyConverter extends Serializable {
 
-  // This contains all currency->usd exchange rates for the requested range of dates:
-  private val toUsdRates: Map[String, Map[String, Double]] =
-    Loader.loadExchangeRates(
+  private var firstDateOfRates: String = "20140101"
+  private var lastDateOfRates: String = CurrencyConverter.today
+  private var lineParser: String => Option[ExchangeRate] =
+    ExchangeRate.defaultRateLineParser
+
+  private var toUsdRates: Map[String, Map[String, Double]] = Map()
+
+  def loadFromSpark(currencyFolder: String, sc: SparkContext): Unit =
+    toUsdRates = Loader.loadExchangeRates(
       currencyFolder,
-      sparkContext,
+      Some(sc),
       firstDateOfRates,
       lastDateOfRates,
-      rateLineParser
+      lineParser
     )
+
+  def load(currencyFolder: String): Unit =
+    toUsdRates = Loader.loadExchangeRates(
+      currencyFolder,
+      None,
+      firstDateOfRates,
+      lastDateOfRates,
+      lineParser
+    )
+
+  def setFirstDate(firstDate: String): Unit = firstDateOfRates = firstDate
+
+  def setLastDate(lastDate: String): Unit = lastDateOfRates = lastDate
+
+  def setLineParser(rateLineParser: String => Option[ExchangeRate]): Unit =
+    lineParser = rateLineParser
 
   /** Converts a price from currency XXX to YYY.
     *
@@ -299,165 +314,6 @@ class CurrencyConverter private (
         }
     }
   }
-
-  // Constructors:
-
-  /** Creates a CurrencyConverter.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    */
-  def this(currencyFolder: String) { this(currencyFolder, None) }
-
-  /** Creates a CurrencyConverter with a specific range of dates.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param firstDateOfRates the first (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170327).
-    * @param lastDateOfRates the last date (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170415).
-    */
-  def this(
-      currencyFolder: String,
-      firstDateOfRates: String,
-      lastDateOfRates: String
-  ) {
-    this(currencyFolder, None, firstDateOfRates, lastDateOfRates)
-  }
-
-  /** Creates a CurrencyConverter for data stored under a different format than
-    * the specified one.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param rateLineParser the custom function used to parse raw exchange rates.
-    * If you have the possibility to provide data under the default format, then
-    * forget this parameter.
-    */
-  def this(
-      currencyFolder: String,
-      rateLineParser: String => Option[ExchangeRate]
-  ) {
-    this(currencyFolder, None, rateLineParser = rateLineParser)
-  }
-
-  /** Creates a CurrencyConverter, with a specific range of dates and for data
-    * stored under a different format than the specified one.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param firstDateOfRates the first (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170327).
-    * @param lastDateOfRates the last date (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170415).
-    * @param rateLineParser the custom function used to parse raw exchange rates.
-    * If you have the possibility to provide data under the default format, then
-    * forget this parameter.
-    */
-  def this(
-      currencyFolder: String,
-      firstDateOfRates: String,
-      lastDateOfRates: String,
-      rateLineParser: String => Option[ExchangeRate]
-  ) {
-    this(
-      currencyFolder,
-      None,
-      firstDateOfRates,
-      lastDateOfRates,
-      rateLineParser
-    )
-  }
-
-  /** Creates a CurrencyConverter for data stored on HDFS.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param sparkContext the SparkContext
-    */
-  def this(currencyFolder: String, sparkContext: SparkContext) {
-    this(currencyFolder, Some(sparkContext))
-  }
-
-  /** Creates a CurrencyConverter for data stored on HDFS, with a specific range
-    * of dates.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param sparkContext the SparkContext
-    * @param firstDateOfRates the first (included) date of the range of dates of
-    * exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170327).
-    * @param lastDateOfRates the last date (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170415).
-    */
-  def this(
-      currencyFolder: String,
-      sparkContext: SparkContext,
-      firstDateOfRates: String,
-      lastDateOfRates: String
-  ) {
-    this(currencyFolder, Some(sparkContext), firstDateOfRates, lastDateOfRates)
-  }
-
-  /** Creates a CurrencyConverter for data stored on HDFS, for data stored under
-    * a different format than the specified one.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    * of exchange rates.
-    * @param sparkContext the SparkContext
-    * @param rateLineParser the custom function used to parse raw exchange rates.
-    * If you have the possibility to provide data under the default format, then
-    * forget this parameter.
-    */
-  def this(
-      currencyFolder: String,
-      sparkContext: SparkContext,
-      rateLineParser: String => Option[ExchangeRate]
-  ) {
-    this(currencyFolder, Some(sparkContext), rateLineParser = rateLineParser)
-  }
-
-  /** Creates a CurrencyConverter for data stored on HDFS, with a specific range
-    * of dates and for data stored under a different format than the specified one.
-    *
-    * @param currencyFolder the path to the hdfs folder which contains the files
-    *  of exchange rates.
-    * @param sparkContext the SparkContext
-    * @param firstDateOfRates the first (included) date of the range of dates of
-    * exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170327).
-    * @param lastDateOfRates the last date (included) date of the range of dates
-    * of exchange rates to load (expected format is yyyyMMdd - for instance
-    * 20170415).
-    * @param rateLineParser the custom function used to parse raw exchange rates.
-    * If you have the possibility to provide data under the default format, then
-    * forget this parameter.
-    */
-  def this(
-      currencyFolder: String,
-      sparkContext: SparkContext,
-      firstDateOfRates: String,
-      lastDateOfRates: String,
-      rateLineParser: String => Option[ExchangeRate]
-  ) {
-    this(
-      currencyFolder,
-      Some(sparkContext),
-      firstDateOfRates,
-      lastDateOfRates,
-      rateLineParser
-    )
-  }
-}
-
-private object CurrencyConverter {
 
   /** We do not catch errors here. User should be owner of its inputs and should
     * be aware in case the date or format provided gives an exception */
