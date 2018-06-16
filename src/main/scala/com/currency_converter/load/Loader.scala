@@ -9,7 +9,7 @@ import java.io.File
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-/** Functions called when initializating CurrencyConverter in order to load data.
+/** Functions called when initializing CurrencyConverter in order to load data.
   *
   * @author Xavier Guihot
   * @since 2017-02
@@ -57,9 +57,9 @@ private[currency_converter] object Loader extends Serializable {
 
     val toUsdRates = sparkContext match {
 
-      case Some(sparkContext) =>
+      case Some(sc) =>
         loadExchangeRatesFromHdfs(
-          sparkContext.textFile(currencyFolder),
+          sc.textFile(currencyFolder),
           firstDateOfRates,
           lastDateOfRates,
           parseRateLine)
@@ -102,16 +102,13 @@ private[currency_converter] object Loader extends Serializable {
       }
       .groupBy(_.date)
       .map {
-        case (date, usdRates) => {
-
+        case (date, usdRates) =>
           // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
           val toUsdRates = usdRates.map {
             case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
             case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
-
           (date, toUsdRates)
-        }
       }
       .collect()
       .toMap
@@ -135,7 +132,7 @@ private[currency_converter] object Loader extends Serializable {
 
     val folder = new File(currencyFolder)
 
-    require(folder.exists, s"folder $currencyFolder doesn't exsist")
+    require(folder.exists, s"folder $currencyFolder doesn't exist")
     require(
       folder.isDirectory,
       s"folder $currencyFolder is a file; expecting a folder")
@@ -143,7 +140,7 @@ private[currency_converter] object Loader extends Serializable {
     val currencyFiles = folder.listFiles.filter(_.isFile).toList
 
     currencyFiles.flatMap { currencyFile =>
-      // Let's parse from each file of rate (usuallly one file per date)
+      // Let's parse from each file of rate (usually one file per date)
       // the different rates:
       Source
         .fromFile(currencyFile, "UTF-8")
@@ -156,17 +153,13 @@ private[currency_converter] object Loader extends Serializable {
         }
     }.groupBy(_.date)
       .map {
-        case (date, usdRates) => {
-
+        case (date, usdRates) =>
           // Rates are transformed to (currencyCode, currencyToUsdRate) tuples:
           val toUsdRates = usdRates.map {
             case ExchangeRate(_, fromCurr, "USD", rate) => (fromCurr, rate)
             case ExchangeRate(_, "USD", toCurr, rate)   => (toCurr, 1d / rate)
           }.toMap
-
           (date, toUsdRates)
-        }
       }
-      .toMap
   }
 }

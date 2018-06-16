@@ -19,7 +19,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       Array(
         // USD to SEK rate:
         "20171224,USD,SEK,8.33034829",
-        // USD to SEK rate (will be overriden by the next rate (duplicate with next line)):
+        // USD to SEK rate (will be overridden by the next rate (duplicate with next line)):
         "20171225,USD,SEK,8.34521",
         // SEL to USD rate for the same date (20171225), but from currency to USD:
         "20171225,SEK,USD,0.119829215",
@@ -33,7 +33,7 @@ class LoaderTest extends FunSuite with SharedSparkContext {
         "20171224,EUR,SEK,9.4"
       ))
 
-    val computedToUSDrates = Loader.loadExchangeRatesFromHdfs(
+    val computedToUSDRates = Loader.loadExchangeRatesFromHdfs(
       rawRates,
       "20171224",
       "20171225",
@@ -46,13 +46,13 @@ class LoaderTest extends FunSuite with SharedSparkContext {
       "20171225" -> Map("SEK" -> 0.119829215d)
     )
 
-    assert(computedToUSDrates === expectedToUsdRates)
+    assert(computedToUSDRates === expectedToUsdRates)
   }
 
   test("Load Exchange Rates from Hadoop") {
 
     // 1:
-    var computedToUSDrates = Loader.loadExchangeRates(
+    var computedToUSDRates = Loader.loadExchangeRates(
       "src/test/resources/hdfs_rates",
       Some(sc),
       "20170227",
@@ -64,22 +64,22 @@ class LoaderTest extends FunSuite with SharedSparkContext {
         "SEK" -> 0.11784670500612802d,
         "EUR" -> 0.8092710086753853d)
     )
-    assert(computedToUSDrates === expectedToUsdRates)
+    assert(computedToUSDRates === expectedToUsdRates)
 
     // 2: Missing rates for 20170226:
-    computedToUSDrates = Loader.loadExchangeRates(
+    computedToUSDRates = Loader.loadExchangeRates(
       "src/test/resources/hdfs_rates",
       Some(sc),
       "20170226",
       "20170228",
       ExchangeRate.defaultRateLineParser)
-    assert(computedToUSDrates === expectedToUsdRates)
+    assert(computedToUSDRates === expectedToUsdRates)
   }
 
   test("Load Exchange Rates from a Classic File System") {
 
     // 1:
-    var computedToUSDrates = Loader.loadExchangeRates(
+    var computedToUSDRates = Loader.loadExchangeRates(
       "src/test/resources/hdfs_rates",
       None,
       "20170227",
@@ -91,15 +91,15 @@ class LoaderTest extends FunSuite with SharedSparkContext {
         "SEK" -> 0.11784670500612802d,
         "EUR" -> 0.8092710086753853d)
     )
-    assert(computedToUSDrates === expectedToUsdRates)
+    assert(computedToUSDRates === expectedToUsdRates)
 
     // 2: Missing rates for 20170226:
-    computedToUSDrates = Loader.loadExchangeRates(
+    computedToUSDRates = Loader.loadExchangeRates(
       "src/test/resources/hdfs_rates",
       None,
       "20170226",
       "20170228",
       ExchangeRate.defaultRateLineParser)
-    assert(computedToUSDrates === expectedToUsdRates)
+    assert(computedToUSDRates === expectedToUsdRates)
   }
 }

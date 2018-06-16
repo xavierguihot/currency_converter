@@ -19,7 +19,7 @@ object ExchangeRate {
   /** Default parsing of an exchange rate line.
     *
     * If one doesn't provide an alternative method to this one when creating
-    * the CurrencyConverter object, then this is how lline of rates are parsed.
+    * the CurrencyConverter object, then this is how line of rates are parsed.
     *
     * The default format is:
     *

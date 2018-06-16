@@ -1,6 +1,6 @@
 package com.currency_converter
 
-import com.currency_converter.error.CurrencyConverterException
+import com.currency_converter.error.{CurrencyConverterException => CCE}
 import com.currency_converter.load.Loader
 import com.currency_converter.model.ExchangeRate
 
@@ -50,7 +50,7 @@ import scala.util.{Try, Success, Failure}
   * }}}
   *
   * * To load exchange rate data, this tool expects your exchange rate data to
-  * be csv formated this way:
+  * be csv formatted this way:
   *
   *   yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)
   *
@@ -225,10 +225,9 @@ class CurrencyConverter private (
 
       rate match {
 
-        case Success(rate) => Success(rate)
+        case Success(r) => Success(r)
 
-        case Failure(exception) => {
-
+        case Failure(exception) =>
           if (!fallback)
             Failure(exception)
           else {
@@ -242,12 +241,11 @@ class CurrencyConverter private (
               exchangeRate(fromCurrency, toCurrency, dayBefore, fallback = true)
             else
               Failure(
-                CurrencyConverterException(
+                CCE(
                   "No exchange rate between currencies \"" + fromCurrency +
                     "\" and \"" + toCurrency + "\" could be found even after " +
                     "fallback on previous dates."))
           }
-        }
       }
     }
   }
@@ -272,10 +270,9 @@ class CurrencyConverter private (
     val startDate = dateFormatter.parseDateTime(firstDateOfRates)
     val lastDate = dateFormatter.parseDateTime(lastDateOfRates)
 
-    (0 to Days.daysBetween(startDate, lastDate).getDays()).toList
+    (0 to Days.daysBetween(startDate, lastDate).getDays).toList
       .map(dayNbr => dateFormatter.print(startDate.plusDays(dayNbr)))
-      .filter(date => !toUsdRates.contains(date))
-      .isEmpty
+      .forall(date => toUsdRates.contains(date))
   }
 
   // Internal core:
@@ -293,8 +290,7 @@ class CurrencyConverter private (
       case "USD" =>
         Success(1d) // Since the USD to USD rate is not provided in input data
 
-      case _ => {
-
+      case _ =>
         toUsdRates.get(date) match {
 
           case Some(ratesForDate) =>
@@ -302,17 +298,12 @@ class CurrencyConverter private (
               .get(currency)
               .map(Success(_))
               .getOrElse(
-                Failure(
-                  CurrencyConverterException(
-                    "No exchange rate for currency \"" + currency +
-                      "\" for date \"" + date + "\".")))
+                Failure(CCE("No exchange rate for currency \"" + currency +
+                  "\" for date \"" + date + "\".")))
 
           case None =>
-            Failure(
-              CurrencyConverterException(
-                "No exchange rate for date \"" + date + "\"."))
+            Failure(CCE("No exchange rate for date \"" + date + "\"."))
         }
-      }
     }
   }
 
@@ -481,6 +472,6 @@ private object CurrencyConverter {
       .print(DateTimeFormat.forPattern(inputFormat).parseDateTime(date))
 
   /** Retrieve today's date */
-  private def today(): String =
+  private def today: String =
     DateTimeFormat.forPattern("yyyyMMdd").print(new DateTime())
 }

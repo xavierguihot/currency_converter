@@ -9,7 +9,7 @@ import com.holdenkarau.spark.testing.SharedSparkContext
 
 import org.scalatest.FunSuite
 
-/** Testing facility for Currency Convertion base methods.
+/** Testing facility for Currency Conversion base methods.
   *
   * @author Xavier Guihot
   * @since 2017-02
@@ -33,8 +33,6 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     rate = currencyConverter.exchangeRate("USD", "USD", "20170201")
     assert(rate === Success(1d))
     rate = currencyConverter.exchangeRate("USD", "SEK", "20170201")
-    assert(rate === Success(8.80033d))
-    rate = currencyConverter.exchangeRate("USD", "SEK", "20170201", "yyyyMMdd")
     assert(rate === Success(8.80033d))
     rate = currencyConverter
       .exchangeRate("USD", "EUR", "2017-02-01", "yyyy-MM-dd")
@@ -118,12 +116,12 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
     // throw a not Serializable exception at run time:
     val customRateLineParser = (rawRateLine: String) => {
 
-      val splittedRateLine = rawRateLine.split("\\,", -1)
+      val splitRateLine = rawRateLine.split("\\,", -1)
 
-      val date = splittedRateLine(0).replace("-", "")
-      val fromCurrency = splittedRateLine(1)
-      val toCurrency = splittedRateLine(3)
-      val exchangeRate = splittedRateLine(6).toFloat
+      val date = splitRateLine(0).replace("-", "")
+      val fromCurrency = splitRateLine(1)
+      val toCurrency = splitRateLine(3)
+      val exchangeRate = splitRateLine(6).toFloat
 
       Some(ExchangeRate(date, fromCurrency, toCurrency, exchangeRate))
     }
@@ -184,10 +182,6 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
         1.0732147073343492d))
     assert(
       currencyConverter.convert(1d, "EUR", "SEK", "20170201") === Success(
-        9.444643585395694d))
-    assert(
-      currencyConverter
-        .convert(1d, "EUR", "SEK", "20170201", "yyyyMMdd") === Success(
         9.444643585395694d))
 
     assert(
@@ -258,7 +252,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       .exchangeRate("USD", "EUR", "170228", "yyMMdd", fallback = true)
     assert(exchangeRate === Success(1.25d))
 
-    // 3: USD to EUR rate is not available for 20170228, and not availbale for
+    // 3: USD to EUR rate is not available for 20170228, and not available for
     // 20170227 but is available for 20170201:
     assert(currencyConverter.exchangeRate("USD", "GBP", "20170228").isFailure)
     assert(currencyConverter.exchangeRate("USD", "GBP", "20170227").isFailure)
@@ -271,7 +265,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       .exchangeRate("USD", "GBP", "2017-02-28", "yyyy-MM-dd", fallback = true)
     assert(exchangeRate === Success(0.79919d))
 
-    // 4: Let's check we do get an exception if there are absolutly no dates
+    // 4: Let's check we do get an exception if there are absolutely no dates
     // with the requested rate:
     var exception = intercept[CurrencyConverterException] {
       currencyConverter
@@ -315,7 +309,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       .convert(2d, "USD", "SEK", "170228", "yyMMdd", fallback = true)
     assert(convertedPrice === Success(16.9712d))
 
-    // 2: USD to EUR rate is not available for 20170228, and not availbale for
+    // 2: USD to EUR rate is not available for 20170228, and not available for
     // 20170227 but is available for 20170201:
 
     assert(currencyConverter.convert(2d, "USD", "GBP", "20170228").isFailure)
@@ -332,7 +326,7 @@ class CurrencyConverterTest extends FunSuite with SharedSparkContext {
       .convert(2d, "USD", "GBP", "2017-02-28", "yyyy-MM-dd", fallback = true)
     assert(convertedPrice === Success(1.59838d))
 
-    // 3: Let's check we do get an exception if there are absolutly no dates
+    // 3: Let's check we do get an exception if there are absolutely no dates
     // with the requested rate:
     var exception = intercept[CurrencyConverterException] {
       currencyConverter

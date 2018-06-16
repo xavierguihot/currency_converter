@@ -52,7 +52,7 @@ assert(currencyConverter.convert(2d, "USD", "GBP", "20170228", fallback = true) 
 ```
 
 To load exchange rate data, this tool expects your exchange rate data to be csv
-formated this way:
+formatted this way:
 
 	yyyyMMddDateOfApplicability,fromCurrency,toCurrency,rate (20170327,USD,EUR,0.89)
 
